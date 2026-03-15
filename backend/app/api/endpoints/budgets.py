@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List, Optional
 from app.core.database import get_database
-from app.models.budget import Budget, BudgetCreate, BudgetUpdate, BudgetSummary
+from app.models.budget import Budget, BudgetCreate, BudgetUpdate, BudgetSummary, MonthlyBudgetSummary
 from app.services.budget_service import BudgetService
 
 router = APIRouter(prefix="/budgets", tags=["budgets"])
@@ -44,17 +44,13 @@ async def get_active_budgets(
     return await service.get_active_budgets()
 
 
-@router.get("/{budget_id}", response_model=Budget)
-async def get_budget(
-    budget_id: str,
+@router.get("/monthly-summary", response_model=List[MonthlyBudgetSummary])
+async def get_monthly_budget_summary(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Get a specific budget by ID"""
+    """Get monthly budget summaries grouped by budget_month"""
     service = BudgetService(db)
-    budget = await service.get_budget(budget_id)
-    if not budget:
-        raise HTTPException(status_code=404, detail="Budget not found")
-    return budget
+    return await service.get_monthly_budget_summary()
 
 
 @router.get("/{budget_id}/summary", response_model=BudgetSummary)
@@ -77,49 +73,14 @@ async def get_budget_summary(
     return summary
 
 
-@router.put("/{budget_id}", response_model=Budget)
-async def update_budget(
+@router.get("/{budget_id}", response_model=Budget)
+async def get_budget(
     budget_id: str,
-    budget_update: BudgetUpdate,
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Update a budget"""
+    """Get a specific budget by ID"""
     service = BudgetService(db)
-    
-    # Validate dates if both are provided
-    if budget_update.start_date and budget_update.end_date:
-        if budget_update.start_date >= budget_update.end_date:
-            raise HTTPException(status_code=400, detail="Start date must be before end date")
-    
-    budget = await service.update_budget(budget_id, budget_update)
-    if not budget:
-        raise HTTPException(status_code=404, detail="Budget not found")
-    return budget
-
-
-@router.delete("/{budget_id}", status_code=204)
-async def delete_budget(
-    budget_id: str,
-    force: bool = Query(False, description="Force delete even if has transactions"),
-    db: AsyncIOMotorDatabase = Depends(get_database)
-):
-    """Delete a budget"""
-    service = BudgetService(db)
-    
-    # Check if budget exists
     budget = await service.get_budget(budget_id)
     if not budget:
         raise HTTPException(status_code=404, detail="Budget not found")
-    
-    # Check if budget has transactions
-    if not force:
-        has_transactions = await service.has_transactions(budget_id)
-        if has_transactions:
-            raise HTTPException(
-                status_code=400,
-                detail="Budget has transactions. Use force=true to delete anyway."
-            )
-    
-    success = await service.delete_budget(budget_id)
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to delete budget")
+    return budget

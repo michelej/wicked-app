@@ -245,6 +245,17 @@
           />
         </div>
 
+        <div class="form-field">
+          <label for="budgetMonth">Mes del Presupuesto *</label>
+          <InputText 
+            id="budgetMonth"
+            v-model="budgetForm.budget_month" 
+            placeholder="ej. Marzo-2026"
+            class="w-full"
+          />
+          <small class="form-help">Formato: Mes-Año (ej. Marzo-2026)</small>
+        </div>
+
         <!-- Budget Items Section -->
         <div class="budget-items-section">
           <div class="section-header">
@@ -417,6 +428,7 @@ const budgetForm = ref({
   name: '',
   start_date: null,
   end_date: null,
+  budget_month: '',
   budget_items: [],
   status: 'active'
 })
@@ -481,6 +493,7 @@ const editBudget = (budget) => {
     name: budget.name,
     start_date: new Date(budget.start_date),
     end_date: new Date(budget.end_date),
+    budget_month: budget.budget_month || '',
     budget_items: budget.budget_items || [],
     status: budget.status
   }
@@ -494,17 +507,30 @@ const closeDialog = () => {
     name: '',
     start_date: null,
     end_date: null,
+    budget_month: '',
     budget_items: [],
     status: 'active'
   }
 }
 
 const saveBudget = async () => {
-  if (!budgetForm.value.name || !budgetForm.value.start_date || !budgetForm.value.end_date) {
+  if (!budgetForm.value.name || !budgetForm.value.start_date || !budgetForm.value.end_date || !budgetForm.value.budget_month) {
     toast.add({
       severity: 'warn',
       summary: 'Campos requeridos',
       detail: 'Por favor completa todos los campos',
+      life: 3000
+    })
+    return
+  }
+
+  // Validate budget_month format
+  const monthPattern = /^[A-Za-z]+-\d{4}$/
+  if (!monthPattern.test(budgetForm.value.budget_month)) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Formato inválido',
+      detail: 'El mes del presupuesto debe tener formato "Mes-Año" (ej. Marzo-2026)',
       life: 3000
     })
     return
@@ -516,6 +542,7 @@ const saveBudget = async () => {
         name: budgetForm.value.name,
         start_date: budgetForm.value.start_date.toISOString(),
         end_date: budgetForm.value.end_date.toISOString(),
+        budget_month: budgetForm.value.budget_month,
         status: budgetForm.value.status,
         budget_items: budgetForm.value.budget_items
       })
@@ -530,6 +557,7 @@ const saveBudget = async () => {
         name: budgetForm.value.name,
         start_date: budgetForm.value.start_date.toISOString(),
         end_date: budgetForm.value.end_date.toISOString(),
+        budget_month: budgetForm.value.budget_month,
         status: budgetForm.value.status,
         budget_items: budgetForm.value.budget_items
       })

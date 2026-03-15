@@ -19,6 +19,11 @@ const router = createRouter({
           component: () => import('@/views/BudgetManager.vue')
         },
         {
+          path: 'budgets/monthly-summary',
+          name: 'monthly-budget-summary',
+          component: () => import('@/views/MonthlyBudgetSummary.vue')
+        },
+        {
           path: 'budgets/:id',
           name: 'budget-detail',
           component: () => import('@/views/BudgetView.vue')

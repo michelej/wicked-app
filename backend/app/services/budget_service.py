@@ -3,7 +3,7 @@ from bson import ObjectId
 from datetime import datetime
 from typing import List, Optional
 from decimal import Decimal
-from app.models.budget import Budget, BudgetCreate, BudgetUpdate, BudgetSummary
+from app.models.budget import Budget, BudgetCreate, BudgetUpdate, BudgetSummary, MonthlyBudgetSummary
 
 
 class BudgetService:
@@ -286,3 +286,115 @@ class BudgetService:
         )
         
         return result.modified_count > 0
+    
+    async def get_monthly_budget_summary(self) -> List[MonthlyBudgetSummary]:
+        """Get monthly budget summaries grouped by budget_month"""
+        
+        # Get all budgets
+        budgets = []
+        cursor = self.collection.find({})
+        async for budget in cursor:
+            budget["_id"] = str(budget["_id"])
+            budgets.append(Budget(**budget))
+        
+        # Group budgets by budget_month
+        monthly_groups = {}
+        for budget in budgets:
+            month = budget.budget_month
+            if month not in monthly_groups:
+                monthly_groups[month] = []
+            monthly_groups[month].append(budget)
+        
+        # Calculate summaries for each month
+        summaries = []
+        for month, month_budgets in monthly_groups.items():
+            total_planned = Decimal(0)
+            total_spent = Decimal(0)
+            categories_summary = {}
+            
+            # Get all categories to build parent-child relationship map
+            category_to_parent = {}
+            categories_by_name = {}
+            categories_by_id = {}
+            
+            cursor = self.db.categories.find({})
+            async for cat in cursor:
+                cat_id = str(cat["_id"])
+                cat_name = cat["name"]
+                categories_by_id[cat_id] = cat
+                categories_by_name[cat_name] = cat
+            
+            # Build the parent mapping
+            for cat_name, cat in categories_by_name.items():
+                if cat.get("parent_id"):
+                    parent_id = cat["parent_id"]
+                    if parent_id in categories_by_id:
+                        parent_name = categories_by_id[parent_id]["name"]
+                        category_to_parent[cat_name] = parent_name
+            
+            # Process each budget in the month
+            for budget in month_budgets:
+                # Add planned amounts
+                for item in budget.budget_items:
+                    total_planned += item.planned_amount
+                
+                # Get transactions for this budget
+                transactions = []
+                cursor = self.db.transactions.find({"budget_id": str(budget.id), "type": "expense"})
+                async for trans in cursor:
+                    transactions.append(trans)
+                
+                # Calculate actual spending by category
+                for trans in transactions:
+                    category_name = trans["category"]
+                    amount = Decimal(str(trans["amount"]))
+                    
+                    # Skip "Transferido Cuentas" category as it's a transfer
+                    if category_name == "Transferido Cuentas":
+                        continue
+                    
+                    # Initialize category if not exists
+                    if category_name not in categories_summary:
+                        categories_summary[category_name] = {
+                            "planned": Decimal(0),
+                            "spent": Decimal(0),
+                            "transactions": 0
+                        }
+                    
+                    categories_summary[category_name]["spent"] += amount
+                    categories_summary[category_name]["transactions"] += 1
+                    total_spent += amount
+                    
+                    # Add to parent category if exists
+                    if category_name in category_to_parent:
+                        parent_name = category_to_parent[category_name]
+                        if parent_name not in categories_summary:
+                            categories_summary[parent_name] = {
+                                "planned": Decimal(0),
+                                "spent": Decimal(0),
+                                "transactions": 0
+                            }
+                        categories_summary[parent_name]["spent"] += amount
+                        categories_summary[parent_name]["transactions"] += 1
+            
+            # Convert categories_summary values to float for JSON serialization
+            converted_categories = {}
+            for cat_name, data in categories_summary.items():
+                converted_categories[cat_name] = {
+                    "planned": float(data["planned"]),
+                    "spent": float(data["spent"]),
+                    "transactions": data["transactions"]
+                }
+            
+            summaries.append(MonthlyBudgetSummary(
+                budget_month=month,
+                total_planned=total_planned,
+                total_spent=total_spent,
+                budget_count=len(month_budgets),
+                categories_summary=converted_categories
+            ))
+        
+        # Sort by month (assuming format "Month-YYYY")
+        summaries.sort(key=lambda x: x.budget_month, reverse=True)
+        
+        return summaries

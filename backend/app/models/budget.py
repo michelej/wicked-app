@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict, Union
 from datetime import datetime
 from decimal import Decimal
 
@@ -20,6 +20,7 @@ class BudgetBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     start_date: datetime
     end_date: datetime
+    budget_month: str = Field(..., min_length=1, max_length=20, pattern=r"^[A-Za-z]+-\d{4}$")
     budget_items: List[BudgetItem] = Field(default_factory=list)
     status: str = Field(default="active", pattern="^(active|closed|draft)$")
     created_from_template: Optional[str] = None
@@ -29,40 +30,38 @@ class BudgetCreate(BudgetBase):
     pass
 
 
-class BudgetUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=100)
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
-    budget_items: Optional[List[BudgetItem]] = None
-    status: Optional[str] = Field(None, pattern="^(active|closed|draft)$")
-
-
 class Budget(BudgetBase):
     id: str = Field(..., alias="_id")
     created_at: datetime
     updated_at: datetime
-
+    
     class Config:
         populate_by_name = True
         json_encoders = {
             Decimal: lambda v: float(v)
         }
-        json_schema_extra = {
-            "example": {
-                "_id": "507f1f77bcf86cd799439011",
-                "name": "Marzo 2026",
-                "start_date": "2026-03-01T00:00:00",
-                "end_date": "2026-03-31T23:59:59",
-                "budget_items": [
-                    {"category": "Comida", "planned_amount": 500.0, "spent_amount": 150.0},
-                    {"category": "Gasolina", "planned_amount": 250.0, "spent_amount": 0.0},
-                    {"category": "Netflix", "planned_amount": 15.99, "spent_amount": 15.99}
-                ],
-                "status": "active",
-                "created_from_template": None,
-                "created_at": "2026-03-01T10:00:00",
-                "updated_at": "2026-03-01T10:00:00"
-            }
+
+
+class BudgetUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    budget_month: Optional[str] = Field(None, min_length=1, max_length=20, pattern=r"^[A-Za-z]+-\d{4}$")
+    budget_items: Optional[List[BudgetItem]] = None
+    status: Optional[str] = Field(None, pattern="^(active|closed|draft)$")
+
+
+class MonthlyBudgetSummary(BaseModel):
+    """Summary of budgets grouped by month"""
+    budget_month: str
+    total_planned: Decimal = Field(default=Decimal(0), ge=0, decimal_places=2)
+    total_spent: Decimal = Field(default=Decimal(0), ge=0, decimal_places=2)
+    budget_count: int = Field(default=0, ge=0)
+    categories_summary: Dict[str, Dict[str, Union[float, int]]] = Field(default_factory=dict)  # category -> {planned, spent, transactions}
+    
+    class Config:
+        json_encoders = {
+            Decimal: lambda v: float(v)
         }
 
 

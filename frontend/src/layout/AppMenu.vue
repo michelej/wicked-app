@@ -31,6 +31,11 @@ const model = ref([
         to: '/budgets'
       },
       {
+        label: 'Resumen Mensual',
+        icon: 'pi pi-fw pi-calendar',
+        to: '/budgets/monthly-summary'
+      },
+      {
         label: 'Transacciones',
         icon: 'pi pi-fw pi-list',
         to: '/transactions'

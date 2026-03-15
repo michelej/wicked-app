@@ -21,6 +21,11 @@ export default {
     return apiClient.get(`/api/budgets/${id}/summary`)
   },
 
+  // Get monthly budget summaries
+  getMonthlyBudgetSummaries() {
+    return apiClient.get('/api/budgets/monthly-summary')
+  },
+
   // Create budget
   createBudget(budget) {
     return apiClient.post('/api/budgets', budget)
