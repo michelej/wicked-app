@@ -174,7 +174,7 @@
             <Column field="category" header="Categoría" :sortable="true">
               <template #body="{ data, index }">
                 <div v-if="!editingBudgetItems" class="category-cell">
-                  <span v-if="isSubcategory(data.category)" class="subcategory-indicator">↳</span>
+                  
                   <span>{{ data.category }}</span>
                 </div>
                 <Select
@@ -295,8 +295,41 @@
         </template>
 
         <template #content>
+          <!-- Transaction Summary -->
+          <div class="transaction-summary">
+            <div class="summary-item">
+              <div class="summary-icon income-icon">
+                <i class="pi pi-arrow-down"></i>
+              </div>
+              <div class="summary-content">
+                <h4 class="summary-value">{{ formatCurrency(transactionSummary.totalIncome) }}</h4>
+                <p class="summary-label">Total Ingresos</p>
+              </div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-icon expense-icon">
+                <i class="pi pi-arrow-up"></i>
+              </div>
+              <div class="summary-content">
+                <h4 class="summary-value">{{ formatCurrency(transactionSummary.totalExpense) }}</h4>
+                <p class="summary-label">Total Gastos</p>
+              </div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-icon balance-icon">
+                <i class="pi pi-wallet"></i>
+              </div>
+              <div class="summary-content">
+                <h4 class="summary-value" :class="{ 'negative': transactionSummary.balance < 0 }">
+                  {{ formatCurrency(transactionSummary.balance) }}
+                </h4>
+                <p class="summary-label">Balance</p>
+              </div>
+            </div>
+          </div>
+
           <DataTable 
-            :value="filteredTransactions"
+            :value="transactionsWithBalance"
             :loading="transactionStore.loading"
             stripedRows
             paginator
@@ -345,6 +378,17 @@
                   :class="{ 'text-green': data.type === 'income', 'text-red': data.type === 'expense' }"
                 >
                   {{ data.type === 'income' ? '+' : '-' }}{{ formatCurrency(data.amount) }}
+                </span>
+              </template>
+            </Column>
+
+            <Column field="runningBalance" header="Saldo" sortable>
+              <template #body="{ data }">
+                <span 
+                  class="balance-text"
+                  :class="{ 'text-green': data.runningBalance >= 0, 'text-red': data.runningBalance < 0 }"
+                >
+                  {{ formatCurrency(data.runningBalance) }}
                 </span>
               </template>
             </Column>
@@ -800,6 +844,48 @@ const filteredTransactions = computed(() => {
   }
 
   return transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+})
+
+const transactionsWithBalance = computed(() => {
+  // Get filtered transactions and sort by date ascending (oldest first)
+  const sortedTransactions = [...filteredTransactions.value].sort((a, b) => 
+    new Date(a.timestamp) - new Date(b.timestamp)
+  )
+  
+  // Calculate running balance
+  let runningBalance = 0
+  const transactionsWithBalance = sortedTransactions.map(transaction => {
+    const amount = transaction.type === 'income' ? transaction.amount : -transaction.amount
+    runningBalance += amount
+    
+    return {
+      ...transaction,
+      runningBalance
+    }
+  })
+  
+  // Return sorted by date descending (newest first) for display
+  return transactionsWithBalance.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+})
+
+const transactionSummary = computed(() => {
+  const transactions = filteredTransactions.value
+  
+  const totalIncome = transactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0)
+  
+  const totalExpense = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0)
+  
+  const balance = totalIncome - totalExpense
+  
+  return {
+    totalIncome,
+    totalExpense,
+    balance
+  }
 })
 
 // Lifecycle
@@ -1296,6 +1382,70 @@ const saveBudgetItems = async () => {
   width: 250px;
 }
 
+/* Transaction Summary */
+.transaction-summary {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--surface-ground);
+  border-radius: 12px;
+  border: 1px solid var(--surface-border);
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.summary-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: white;
+}
+
+.income-icon {
+  background: #10b981;
+}
+
+.expense-icon {
+  background: #ef4444;
+}
+
+.balance-icon {
+  background: #3b82f6;
+}
+
+.summary-content {
+  flex: 1;
+}
+
+.summary-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin: 0 0 0.25rem 0;
+  line-height: 1;
+}
+
+.summary-value.negative {
+  color: #ef4444;
+}
+
+.summary-label {
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+  font-weight: 500;
+  margin: 0;
+}
+
 .empty-state {
   text-align: center;
   padding: 3rem 1rem;
@@ -1315,6 +1465,11 @@ const saveBudgetItems = async () => {
 
 .amount-text {
   font-weight: 600;
+  font-size: 1rem;
+}
+
+.balance-text {
+  font-weight: 700;
   font-size: 1rem;
 }
 
@@ -1485,16 +1640,32 @@ const saveBudgetItems = async () => {
   background: var(--primary-color);
   color: white;
   font-weight: 600;
-  padding: 0.75rem 1rem;
+  padding: 0.35rem 0.5rem;
   border: 1px solid var(--surface-border);
   text-align: left;
-  font-size: 0.9375rem;
+  font-size: 0.8125rem;
+  line-height: 1.2;
 }
 
 .budget-items-table :deep(.p-datatable-tbody > tr > td) {
-  padding: 0.75rem 1rem;
+  padding: 0.35rem 0.5rem;
   border: 1px solid var(--surface-border);
   vertical-align: middle;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+}
+
+.transactions-table :deep(.p-datatable-thead > tr > th) {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+}
+
+.transactions-table :deep(.p-datatable-tbody > tr > td) {
+  padding: 0.35rem 0.5rem;
+  vertical-align: middle;
+  font-size: 0.8125rem;
+  line-height: 1.2;
 }
 
 .budget-items-table :deep(.p-datatable-tbody > tr:hover) {

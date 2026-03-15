@@ -86,9 +86,11 @@
               <i :class="normalizeIcon(category.icon)"></i>
             </div>
             <div class="category-info">
-              <div class="category-name-row">
-                <span v-if="category.parent_id" class="subcategory-indicator">↳</span>
+              <div class="category-name-row">                
                 <h3>{{ category.name }}</h3>
+              </div>
+              <div v-if="category.parent_id" class="parent-category-line">
+                {{ getParentName(category) }}
               </div>
               <div class="category-meta">
                 <Tag 
@@ -662,6 +664,12 @@ const deleteCategory = async () => {
     })
   }
 }
+
+const getParentName = (category) => {
+  if (!category.parent_id) return null
+  const parent = categoryStore.categories.find(c => c._id === category.parent_id)
+  return parent ? parent.name : 'Padre desconocido'
+}
 </script>
 
 <style scoped>
@@ -807,6 +815,15 @@ const deleteCategory = async () => {
   font-size: 1.25rem;
   font-weight: bold;
   margin-right: 0.25rem;
+}
+
+.parent-category-line {
+  font-size: 1rem;
+  color: var(--text-color-secondary);
+  font-weight: 500;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+  font-weight: bold;
 }
 
 .category-icon {
