@@ -444,6 +444,93 @@
           </DataTable>
         </template>
       </Card>
+
+      <!-- Expenses by Category Summary -->
+      <Card class="expenses-summary-card">
+        <template #header>
+          <div class="card-header">
+            <h2>Gastos Reales por Categoría</h2>
+            <div class="summary-stats">
+              <span class="stat-item">
+                <strong>Total Gastado:</strong> {{ formatCurrency(expensesByCategory.filter(item => !item.isIndented).reduce((sum, cat) => sum + cat.totalSpent, 0)) }}
+              </span>
+              <span class="stat-item">
+                <strong>Categorías:</strong> {{ expensesByCategory.filter(item => !item.isIndented).length }}
+              </span>
+            </div>
+          </div>
+        </template>
+
+        <template #content>
+          <DataTable
+            :value="expensesByCategory"
+            class="expenses-summary-table"
+            stripedRows
+            showGridlines
+            paginator
+            :rows="10"
+            :rowsPerPageOptions="[10, 20, 50]"
+          >
+            <template #empty>
+              <div class="empty-state">
+                <i class="pi pi-chart-bar"></i>
+                <p>No hay gastos registrados</p>
+              </div>
+            </template>
+
+            <Column field="category" header="Categoría" sortable>
+              <template #body="{ data }">
+                <div class="category-cell" :class="{ 'parent-category': data.isParent, 'subcategory': data.isIndented }">
+                  <span v-if="data.isParent" class="parent-indicator">📁</span>
+                  <span v-if="data.isIndented" class="subcategory-indicator">↳</span>
+                  <Tag 
+                    :value="data.category" 
+                    :severity="data.isParent ? 'primary' : 'secondary'"
+                    :class="{ 'parent-tag': data.isParent }"
+                  />
+                  <span v-if="data.isParent" class="subcategory-count">
+                    ({{ data.subcategories.length }} subcategorías)
+                  </span>
+                </div>
+              </template>
+            </Column>
+
+            <Column field="totalSpent" header="Total Gastado" sortable>
+              <template #body="{ data }">
+                <span class="amount-text text-red">
+                  {{ formatCurrency(data.totalSpent) }}
+                </span>
+              </template>
+            </Column>
+
+            <Column field="transactionCount" header="Transacciones" sortable>
+              <template #body="{ data }">
+                <span class="transaction-count">{{ data.transactionCount }}</span>
+              </template>
+            </Column>
+
+            <Column field="banks" header="Bancos">
+              <template #body="{ data }">
+                <div class="banks-list">
+                  <Tag 
+                    v-for="bank in data.banks.slice(0, 2)" 
+                    :key="bank"
+                    :value="bank"
+                    severity="info"
+                    class="bank-tag"
+                  />
+                  <Tag 
+                    v-if="data.banks.length > 2"
+                    :value="`+${data.banks.length - 2} más`"
+                    severity="secondary"
+                    class="bank-tag"
+                  />
+                </div>
+              </template>
+            </Column>
+          </DataTable>
+        </template>
+      </Card>
     </div>
 
     <!-- Transaction Dialog -->
@@ -886,6 +973,136 @@ const transactionSummary = computed(() => {
     totalExpense,
     balance
   }
+})
+
+const expensesByCategory = computed(() => {
+  const transactions = transactionStore.transactions.filter(t => 
+    t.budget_id === budgetId.value && t.type === 'expense'
+  )
+  
+  // Create a map of category names to their details
+  const categoryMap = {}
+  categoryStore.categories.forEach(cat => {
+    categoryMap[cat.name] = {
+      id: cat._id,
+      name: cat.name,
+      parent_id: cat.parent_id,
+      icon: cat.icon,
+      color: cat.color
+    }
+  })
+  
+  // Calculate totals per category
+  const categoryTotals = {}
+  
+  transactions.forEach(transaction => {
+    const category = transaction.category
+    if (!categoryTotals[category]) {
+      categoryTotals[category] = {
+        category,
+        totalSpent: 0,
+        transactionCount: 0,
+        banks: new Set(),
+        categoryInfo: categoryMap[category] || null,
+        isSubcategory: false,
+        parentCategory: null
+      }
+    }
+    
+    categoryTotals[category].totalSpent += transaction.amount
+    categoryTotals[category].transactionCount += 1
+    if (transaction.bank) {
+      categoryTotals[category].banks.add(transaction.bank)
+    }
+  })
+  
+  // Group subcategories under their parents
+  const parentTotals = {}
+  const standaloneCategories = []
+  
+  // First pass: identify subcategories and accumulate parent totals
+  Object.values(categoryTotals).forEach(item => {
+    const catInfo = item.categoryInfo
+    if (catInfo && catInfo.parent_id) {
+      // This is a subcategory
+      item.isSubcategory = true
+      
+      // Find parent category
+      const parentCat = categoryStore.categories.find(c => c._id === catInfo.parent_id)
+      if (parentCat) {
+        item.parentCategory = parentCat.name
+        
+        // Accumulate in parent total
+        if (!parentTotals[parentCat.name]) {
+          parentTotals[parentCat.name] = {
+            category: parentCat.name,
+            totalSpent: 0,
+            transactionCount: 0,
+            banks: new Set(),
+            categoryInfo: {
+              id: parentCat._id,
+              name: parentCat.name,
+              parent_id: null,
+              icon: parentCat.icon,
+              color: parentCat.color
+            },
+            isParent: true,
+            subcategories: []
+          }
+        }
+        
+        parentTotals[parentCat.name].totalSpent += item.totalSpent
+        parentTotals[parentCat.name].transactionCount += item.transactionCount
+        item.banks.forEach(bank => parentTotals[parentCat.name].banks.add(bank))
+        parentTotals[parentCat.name].subcategories.push(item)
+      } else {
+        // Parent not found, treat as regular category
+        standaloneCategories.push({
+          ...item,
+          banks: Array.from(item.banks)
+        })
+      }
+    } else {
+      // This is a parent category or standalone category
+      standaloneCategories.push({
+        ...item,
+        banks: Array.from(item.banks)
+      })
+    }
+  })
+  
+  // Build final result maintaining hierarchy
+  const finalResult = []
+  
+  // Sort parent categories by total spent descending
+  const sortedParents = Object.values(parentTotals).sort((a, b) => b.totalSpent - a.totalSpent)
+  
+  // Add each parent with its sorted subcategories
+  sortedParents.forEach(parent => {
+    // Sort subcategories by amount descending
+    parent.subcategories.sort((a, b) => b.totalSpent - a.totalSpent)
+    parent.banks = Array.from(parent.banks)
+    
+    finalResult.push(parent)
+    
+    // Add subcategories indented
+    parent.subcategories.forEach(sub => {
+      finalResult.push({
+        ...sub,
+        banks: Array.from(sub.banks),
+        isIndented: true
+      })
+    })
+  })
+  
+  // Add remaining standalone categories (not parents and not subcategories)
+  const remainingStandalone = standaloneCategories.filter(item => 
+    !sortedParents.find(p => p.category === item.category)
+  ).sort((a, b) => b.totalSpent - a.totalSpent)
+  
+  finalResult.push(...remainingStandalone)
+  
+  return finalResult
 })
 
 // Lifecycle
@@ -1668,6 +1885,71 @@ const saveBudgetItems = async () => {
   line-height: 1.2;
 }
 
+/* Expenses Summary Card */
+.expenses-summary-card {
+  margin-top: 2rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 16px;
+}
+
+.expenses-summary-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.expenses-summary-card .card-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.expenses-summary-card .summary-stats {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.9375rem;
+}
+
+.expenses-summary-card .stat-item {
+  color: var(--text-color-secondary);
+}
+
+.expenses-summary-table :deep(.p-datatable-thead > tr > th) {
+  background: var(--primary-color);
+  color: white;
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--surface-border);
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.expenses-summary-table :deep(.p-datatable-tbody > tr > td) {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--surface-border);
+  vertical-align: middle;
+}
+
+.transaction-count {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.banks-list {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.bank-tag {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+
 .budget-items-table :deep(.p-datatable-tbody > tr:hover) {
   background: var(--highlight-bg) !important;
 }
@@ -1678,6 +1960,46 @@ const saveBudgetItems = async () => {
 
 .budget-items-table :deep(.p-datatable-tbody > tr.editing-row) {
   background: var(--surface-100);
+}
+
+.category-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.parent-category {
+  font-weight: 600;
+  background: rgba(59, 130, 246, 0.05);
+  padding: 0.5rem;
+  border-radius: 8px;
+  margin: 0.25rem 0;
+}
+
+.subcategory {
+  margin-left: 2rem;
+  opacity: 0.9;
+}
+
+.parent-indicator {
+  font-size: 1.1rem;
+}
+
+.subcategory-indicator {
+  color: var(--primary-color);
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.parent-tag {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.subcategory-count {
+  font-size: 0.8rem;
+  color: var(--text-color-secondary);
+  font-weight: 500;
 }
 
 .category-cell {
