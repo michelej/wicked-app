@@ -1,4 +1,4 @@
-# Wicked App
+# Wicked App (T)
 
 A full-stack application with FastAPI, MongoDB, and Vue.js.
 
