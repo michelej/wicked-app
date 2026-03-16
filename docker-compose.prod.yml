@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: ghcr.io/${GITHUB_REPOSITORY}/mongodb:latest
+    container_name: wicked-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=wicked_db
+    networks:
+      - wicked-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/backend:latest
+    container_name: wicked-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017
+      - MONGODB_DB_NAME=wicked_db
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - CORS_ORIGINS=["http://localhost:5173","http://localhost:8080"]
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - wicked-network
+
+  # Vue.js Frontend
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/frontend:latest
+    container_name: wicked-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=
+      - VITE_BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - wicked-network
+
+networks:
+  wicked-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
