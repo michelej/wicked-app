@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     MONGODB_DB_NAME: str = "wicked_db"
     
     # CORS settings
-    CORS_ORIGINS: List[str] = ["http://localhost:3000"]
+    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://wickednas:5173"]
     
     # API settings
     API_HOST: str = "0.0.0.0"
