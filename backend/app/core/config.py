@@ -1,3 +1,5 @@
+import json
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List, Union
 from pydantic import field_validator
@@ -21,9 +23,16 @@ class Settings(BaseSettings):
     @field_validator('CORS_ORIGINS', mode='before')
     @classmethod
     def parse_cors_origins(cls, v):
-        # Handle comma-separated string format
-        if isinstance(v, str) and not v.startswith('['):
-            return [origin.strip() for origin in v.split(',')]
+        if isinstance(v, str):
+            v = v.strip()
+            # Intentar JSON primero
+            if v.startswith("["):
+                try:
+                    return json.loads(v)
+                except Exception:
+                    pass
+            # Fallback CSV
+            return [origin.strip() for origin in v.split(",")]
         return v
     
     model_config = SettingsConfigDict(

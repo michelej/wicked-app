@@ -3,14 +3,16 @@ version: '3.8'
 services:
   # MongoDB Database
   mongodb:
-    image: ghcr.io/${GITHUB_REPOSITORY}/mongodb:latest
+    image: mongo:7.0
     container_name: wicked-mongodb
+    restart: unless-stopped
     ports:
-      - "27017:27017"
+      - "${MONGODB_PORT:-27017}:27017"
     volumes:
       - mongodb_data:/data/db
     environment:
-      - MONGO_INITDB_DATABASE=wicked_db
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE:-wicked_db}
+      - TZ=${TZ:-UTC}
     networks:
       - wicked-network
     healthcheck:
@@ -21,33 +23,44 @@ services:
 
   # FastAPI Backend
   backend:
-    image: ghcr.io/${GITHUB_REPOSITORY}/backend:latest
+    image: ghcr.io/michelej/wicked-backend:latest
     container_name: wicked-backend
+    restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     environment:
-      - MONGODB_URL=mongodb://mongodb:27017
-      - MONGODB_DB_NAME=wicked_db
+      - MONGODB_URL=${MONGODB_URL:-mongodb://mongodb:27017}
+      - MONGODB_DB_NAME=${MONGO_INITDB_DATABASE:-wicked_db}
       - API_HOST=0.0.0.0
       - API_PORT=8000
-      - CORS_ORIGINS=["http://localhost:5173","http://localhost:8080"]
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - TZ=${TZ:-UTC}
     depends_on:
       mongodb:
         condition: service_healthy
     networks:
       - wicked-network
+    healthcheck:
+      test: curl -f http://localhost:8000/docs || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Vue.js Frontend
   frontend:
-    image: ghcr.io/${GITHUB_REPOSITORY}/frontend:latest
+    image: ghcr.io/michelej/wicked-frontend:latest
     container_name: wicked-frontend
+    restart: unless-stopped
     ports:
-      - "5173:5173"
+      - "${FRONTEND_PORT:-5173}:5173"
     environment:
-      - VITE_API_URL=
-      - VITE_BACKEND_URL=http://backend:8000
+      - VITE_API_URL=${VITE_API_URL:-}
+      - VITE_BACKEND_URL=${VITE_BACKEND_URL:-http://localhost:8000}
+      - TZ=${TZ:-UTC}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - wicked-network
 
@@ -57,3 +70,4 @@ networks:
 
 volumes:
   mongodb_data:
+    driver: local
