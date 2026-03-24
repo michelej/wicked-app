@@ -33,7 +33,6 @@ services:
       - MONGODB_DB_NAME=${MONGO_INITDB_DATABASE:-wicked_db}
       - API_HOST=0.0.0.0
       - API_PORT=8000
-      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
       - TZ=${TZ:-UTC}
     depends_on:
       mongodb:
