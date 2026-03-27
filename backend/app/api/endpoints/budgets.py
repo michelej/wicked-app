@@ -73,6 +73,29 @@ async def get_budget_summary(
     return summary
 
 
+@router.put("/{budget_id}", response_model=Budget)
+async def update_budget(
+    budget_id: str,
+    budget_update: BudgetUpdate,
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Update a specific budget"""
+    service = BudgetService(db)
+    
+    # Check if budget exists
+    budget = await service.get_budget(budget_id)
+    if not budget:
+        raise HTTPException(status_code=404, detail="Budget not found")
+    
+    # Validate dates if both are provided
+    start_date = budget_update.start_date or budget.start_date
+    end_date = budget_update.end_date or budget.end_date
+    if start_date >= end_date:
+        raise HTTPException(status_code=400, detail="Start date must be before end date")
+    
+    return await service.update_budget(budget_id, budget_update)
+
+
 @router.get("/{budget_id}", response_model=Budget)
 async def get_budget(
     budget_id: str,

@@ -44,6 +44,26 @@
         </template>
 
         <template #content>
+          <!-- Parent Category Total Cards -->
+          <div class="parent-category-summary">
+            <h3>Resumen por Categoría Padre</h3>
+            <div class="parent-category-cards">
+              <Card
+                v-for="parent in getParentCategorySummary(monthSummary)"
+                :key="parent.category"
+                class="parent-summary-card"
+              >
+                <template #content>
+                  <div class="card-title">{{ parent.category }}</div>
+                  <div class="card-stats-single">
+                    <span class="amount-text text-red">{{ formatCurrency(parent.spent) }}</span>
+                    <small class="amount-label">Gastado</small>
+                  </div>
+                </template>
+              </Card>
+            </div>
+          </div>
+
           <!-- Categories Summary -->
           <div class="categories-summary">
             <h3>Gastos por Categoría</h3>
@@ -237,6 +257,18 @@ const getCategoriesForMonth = (monthSummary) => {
   return categories
 }
 
+const getParentCategorySummary = (monthSummary) => {
+  const categories = getCategoriesForMonth(monthSummary)
+
+  return categories
+    .filter(item => item.isParent)
+    .map(parent => ({
+      category: parent.category,
+      spent: parent.spent
+    }))
+    .sort((a, b) => b.spent - a.spent)
+}
+
 // Lifecycle
 onMounted(async () => {
   await categoryStore.fetchCategories()
@@ -365,6 +397,73 @@ onMounted(async () => {
 }
 
 /* Categories Summary */
+.parent-category-summary {
+  margin-top: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.parent-category-summary h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 0.75rem;
+}
+
+.parent-category-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.parent-summary-card {
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  background: var(--surface-card);
+  transition: all 0.25s ease;
+}
+
+.parent-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.09);
+  border-color: var(--primary-color);
+}
+
+.parent-summary-card .card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+}
+
+.parent-summary-card .card-stats-single {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.parent-summary-card .card-stats-single .amount-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.parent-summary-card .card-stats-single .amount-label {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.parent-summary-card .card-value {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-top: 0.15rem;
+}
+
+.parent-summary-card .text-red {
+  color: #dc2626;
+}
+
 .categories-summary {
   margin-top: 1rem;
 }

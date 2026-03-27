@@ -590,13 +590,13 @@ const filteredTransactions = computed(() => {
 
 const totalIncome = computed(() => 
   filteredTransactions.value
-    .filter(t => t.type === 'income')
+    .filter(t => t.type === 'income' && t.category !== 'Transferido Cuentas')
     .reduce((sum, t) => sum + t.amount, 0)
 )
 
 const totalExpense = computed(() => 
   filteredTransactions.value
-    .filter(t => t.type === 'expense')
+    .filter(t => t.type === 'expense' && t.category !== 'Transferido Cuentas')
     .reduce((sum, t) => sum + t.amount, 0)
 )
 
