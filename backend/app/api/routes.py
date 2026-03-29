@@ -3,7 +3,7 @@ from app.api.endpoints import (
     categories,
     budgets,
     transactions,
-    templates,
+    imported_transactions,
     recurring_expenses,
     dashboard
 )
@@ -14,6 +14,6 @@ router = APIRouter()
 router.include_router(categories.router)
 router.include_router(budgets.router)
 router.include_router(transactions.router)
-router.include_router(templates.router)
+router.include_router(imported_transactions.router)
 router.include_router(recurring_expenses.router)
 router.include_router(dashboard.router)

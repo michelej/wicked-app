@@ -34,6 +34,16 @@ const router = createRouter({
           component: () => import('@/views/TransactionManager.vue')
         },
         {
+          path: 'imports/upload',
+          name: 'imports-upload',
+          component: () => import('@/views/ImportedTransactionUpload.vue')
+        },
+        {
+          path: 'imports/review',
+          name: 'imports-review',
+          component: () => import('@/views/ImportedTransactionReview.vue')
+        },
+        {
           path: 'recurring',
           name: 'recurring',
           component: () => import('@/views/RecurringManager.vue')
@@ -42,11 +52,6 @@ const router = createRouter({
           path: 'categories',
           name: 'categories',
           component: () => import('@/views/CategoryManager.vue')
-        },
-        {
-          path: 'templates',
-          name: 'templates',
-          component: () => import('@/views/TemplateManager.vue')
         }
       ]
     }

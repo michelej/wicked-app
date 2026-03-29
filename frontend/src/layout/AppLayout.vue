@@ -1,12 +1,19 @@
 <template>
   <div class="layout-wrapper" :class="containerClass">
+    <div class="layout-backdrop" aria-hidden="true">
+      <span class="backdrop-orb orb-primary"></span>
+      <span class="backdrop-orb orb-accent"></span>
+      <span class="backdrop-grid"></span>
+    </div>
     <AppTopbar />
     <div class="layout-sidebar">
       <AppSidebar />
     </div>
     <div class="layout-main-container">
       <div class="layout-main">
-        <router-view />
+        <div class="layout-page-shell">
+          <router-view />
+        </div>
       </div>
       <AppFooter />
     </div>
@@ -48,6 +55,46 @@ const onMaskClick = () => {
 <style scoped>
 .layout-wrapper {
   min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.layout-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.backdrop-orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(14px);
+  opacity: 0.55;
+}
+
+.orb-primary {
+  top: -9rem;
+  right: -8rem;
+  width: 26rem;
+  height: 26rem;
+  background: radial-gradient(circle, rgba(15, 139, 111, 0.22) 0%, rgba(15, 139, 111, 0) 72%);
+}
+
+.orb-accent {
+  bottom: 8rem;
+  left: -10rem;
+  width: 24rem;
+  height: 24rem;
+  background: radial-gradient(circle, rgba(217, 119, 6, 0.18) 0%, rgba(217, 119, 6, 0) 72%);
+}
+
+.backdrop-grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(95, 75, 45, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(95, 75, 45, 0.04) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.3), transparent 88%);
 }
 
 .layout-main-container {
@@ -55,12 +102,21 @@ const onMaskClick = () => {
   flex-direction: column;
   min-height: 100vh;
   justify-content: space-between;
-  padding: 7rem 2rem 2rem 4rem;
-  transition: margin-left 0.2s;
+  padding: 6.75rem 2rem 2rem 3.75rem;
+  transition: margin-left 0.3s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .layout-main {
   flex: 1 1 auto;
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+.layout-page-shell {
+  width: 100%;
 }
 
 .layout-mask {
@@ -105,7 +161,7 @@ const onMaskClick = () => {
 @media (max-width: 991px) {
   .layout-wrapper .layout-main-container {
     margin-left: 0;
-    padding-left: 2rem;
+    padding: 6.25rem 1rem 1.5rem;
   }
 
   .layout-wrapper.layout-static .layout-main-container {
@@ -118,6 +174,20 @@ const onMaskClick = () => {
 
   .layout-wrapper.layout-mobile-active .layout-sidebar {
     transform: translateX(0);
+  }
+
+  .orb-primary {
+    width: 18rem;
+    height: 18rem;
+    top: -6rem;
+    right: -5rem;
+  }
+
+  .orb-accent {
+    width: 16rem;
+    height: 16rem;
+    bottom: 4rem;
+    left: -6rem;
   }
 }
 </style>

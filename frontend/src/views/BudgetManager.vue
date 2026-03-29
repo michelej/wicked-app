@@ -1,146 +1,196 @@
 <template>
   <div class="budget-manager">
-    <!-- Header -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="header-text">
-          <h1 class="page-title">Gestión de Presupuestos</h1>
-          <p class="page-subtitle">Administra todos tus presupuestos</p>
+    <section class="hero-panel">
+      <div class="hero-copy">
+        <span class="hero-kicker">Budget studio</span>
+        <h1 class="page-title">Gestiona presupuestos con una vista mas clara y operativa.</h1>
+        <p class="page-subtitle">{{ currentTabSummary.description }}</p>
+
+        <div class="hero-actions">
+          <Button
+            label="Nuevo Presupuesto"
+            icon="pi pi-plus"
+            severity="success"
+            class="hero-primary-action"
+            @click="showCreateDialog = true"
+          />
+          <div class="hero-tag-card">
+            <span>Vista activa</span>
+            <strong>{{ currentTabSummary.label }}</strong>
+          </div>
         </div>
-        <Button 
-          label="Nuevo Presupuesto" 
-          icon="pi pi-plus"
-          @click="showCreateDialog = true"
-          severity="success"
+      </div>
+
+      <div class="hero-metrics-grid">
+        <div class="hero-metric-tile">
+          <span>Presupuestos visibles</span>
+          <strong>{{ filteredBudgets.length }}</strong>
+        </div>
+        <div class="hero-metric-tile">
+          <span>Balance agregado</span>
+          <strong :class="{ negative: visibleBalanceTotal < 0 }">{{ formatCurrency(visibleBalanceTotal) }}</strong>
+        </div>
+        <div class="hero-metric-tile">
+          <span>Total planificado</span>
+          <strong>{{ formatCurrency(visiblePlannedTotal) }}</strong>
+        </div>
+        <div class="hero-metric-tile">
+          <span>Transacciones</span>
+          <strong>{{ visibleTransactionsTotal }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="status-shell">
+      <div class="status-shell-header">
+        <div>
+          <span class="section-kicker">Segmentacion</span>
+          <h2>Explora por estado sin perder contexto.</h2>
+        </div>
+        <div class="status-summary-pill">
+          <span>Con categorias planificadas</span>
+          <strong>{{ plannedCategoriesCount }}</strong>
+        </div>
+      </div>
+
+      <div class="status-tabs">
+        <Button
+          :label="`Activos (${budgetStore.activeBudgets.length})`"
+          :severity="currentTab === 'active' ? 'primary' : 'secondary'"
+          :outlined="currentTab !== 'active'"
+          @click="currentTab = 'active'"
+        />
+        <Button
+          :label="`Cerrados (${budgetStore.closedBudgets.length})`"
+          :severity="currentTab === 'closed' ? 'primary' : 'secondary'"
+          :outlined="currentTab !== 'closed'"
+          @click="currentTab = 'closed'"
+        />
+        <Button
+          :label="`Borradores (${budgetStore.draftBudgets.length})`"
+          :severity="currentTab === 'draft' ? 'primary' : 'secondary'"
+          :outlined="currentTab !== 'draft'"
+          @click="currentTab = 'draft'"
         />
       </div>
-    </div>
+    </section>
 
-    <!-- Status Tabs -->
-    <div class="status-tabs">
-      <Button 
-        :label="`Activos (${budgetStore.activeBudgets.length})`"
-        :severity="currentTab === 'active' ? 'primary' : 'secondary'"
-        :text="currentTab !== 'active'"
-        @click="currentTab = 'active'"
-      />
-      <Button 
-        :label="`Cerrados (${budgetStore.closedBudgets.length})`"
-        :severity="currentTab === 'closed' ? 'primary' : 'secondary'"
-        :text="currentTab !== 'closed'"
-        @click="currentTab = 'closed'"
-      />
-      <Button 
-        :label="`Borradores (${budgetStore.draftBudgets.length})`"
-        :severity="currentTab === 'draft' ? 'primary' : 'secondary'"
-        :text="currentTab !== 'draft'"
-        @click="currentTab = 'draft'"
-      />
-    </div>
-
-    <!-- Loading State -->
     <div v-if="budgetStore.loading" class="loading-state">
       <ProgressSpinner />
       <p>Cargando presupuestos...</p>
     </div>
 
-    <!-- Error State -->
     <div v-else-if="budgetStore.error" class="error-message">
       <i class="pi pi-exclamation-circle"></i>
       {{ budgetStore.error }}
     </div>
 
-    <!-- Empty State -->
     <div v-else-if="filteredBudgets.length === 0" class="empty-state">
       <i class="pi pi-wallet"></i>
       <h2>No hay presupuestos {{ currentTab === 'active' ? 'activos' : currentTab === 'closed' ? 'cerrados' : 'en borrador' }}</h2>
       <p>{{ currentTab === 'active' ? 'Crea tu primer presupuesto activo' : 'No tienes presupuestos en esta categoría' }}</p>
-      <Button 
+      <Button
         v-if="currentTab === 'active'"
-        label="Crear Presupuesto" 
+        label="Crear Presupuesto"
         icon="pi pi-plus"
         @click="showCreateDialog = true"
         severity="success"
       />
     </div>
 
-    <!-- Budgets List -->
     <div v-else class="budgets-list">
-      <Card 
-        v-for="budget in filteredBudgets" 
+      <Card
+        v-for="budget in filteredBudgets"
         :key="budget._id"
         class="budget-item"
       >
         <template #header>
           <div class="budget-header">
-            <div class="budget-info">
-              <h3>{{ budget.name }}</h3>
-              <div class="budget-meta">
-                <span class="budget-period">
-                  <i class="pi pi-calendar"></i>
-                  {{ formatDate(budget.start_date) }} - {{ formatDate(budget.end_date) }}
-                </span>
-                <Tag 
-                  :value="formatBudgetStatus(budget.status).label" 
-                  :severity="formatBudgetStatus(budget.status).severity"
-                />
+            <div class="budget-heading">
+              <div class="budget-avatar">{{ getBudgetInitial(budget) }}</div>
+
+              <div class="budget-info">
+                <div class="budget-meta-top">
+                  <Tag
+                    :value="formatBudgetStatus(budget.status).label"
+                    :severity="formatBudgetStatus(budget.status).severity"
+                  />
+                  <span class="budget-health" :class="`is-${getBudgetHealth(budget).tone}`">
+                    {{ getBudgetHealth(budget).label }}
+                  </span>
+                </div>
+
+                <h3>{{ budget.name }}</h3>
+
+                <div class="budget-meta">
+                  <span class="budget-period">
+                    <i class="pi pi-calendar"></i>
+                    {{ formatDate(budget.start_date) }} - {{ formatDate(budget.end_date) }}
+                  </span>
+                  <span class="budget-period">
+                    <i class="pi pi-bookmark"></i>
+                    {{ budget.budget_month || 'Sin mes asignado' }}
+                  </span>
+                </div>
               </div>
+            </div>
+
+            <div class="budget-balance-panel">
+              <span>Balance</span>
+              <strong :class="{ 'text-green': (budget.summary?.balance || 0) >= 0, 'text-red': (budget.summary?.balance || 0) < 0 }">
+                {{ formatCurrency(budget.summary?.balance || 0) }}
+              </strong>
+              <small>{{ getBudgetHealth(budget).description }}</small>
             </div>
           </div>
         </template>
 
         <template #content>
           <div class="budget-summary">
-            <div class="summary-row">
-              <div class="summary-item">
-                <span class="summary-label">Balance</span>
-                <span 
-                  class="summary-value"
-                  :class="{
-                    'text-green': (budget.summary?.balance || 0) >= 0,
-                    'text-red': (budget.summary?.balance || 0) < 0
-                  }"
-                >
-                  {{ formatCurrency(budget.summary?.balance || 0) }}
-                </span>
-              </div>
-              <div class="summary-item">
+            <div class="summary-grid">
+              <div class="summary-item emphasis-item">
                 <span class="summary-label">Transacciones</span>
                 <span class="summary-value">{{ budget.summary?.transactions_count || 0 }}</span>
               </div>
-            </div>
-            <div class="summary-row">
+
               <div class="summary-item">
                 <span class="summary-label text-green">
-                  <i class="pi pi-arrow-down"></i> Ingresos
+                  <i class="pi pi-arrow-down"></i>
+                  Ingresos
                 </span>
-                <span class="summary-value text-green">
-                  {{ formatCurrency(budget.summary?.total_income || 0) }}
-                </span>
+                <span class="summary-value text-green">{{ formatCurrency(budget.summary?.total_income || 0) }}</span>
               </div>
+
               <div class="summary-item">
                 <span class="summary-label text-red">
-                  <i class="pi pi-arrow-up"></i> Gastos
+                  <i class="pi pi-arrow-up"></i>
+                  Gastos
                 </span>
-                <span class="summary-value text-red">
-                  {{ formatCurrency(budget.summary?.total_expense || 0) }}
-                </span>
+                <span class="summary-value text-red">{{ formatCurrency(budget.summary?.total_expense || 0) }}</span>
               </div>
-            </div>
-            <div v-if="budget.budget_items && budget.budget_items.length > 0" class="summary-row budget-items-info">
-              <div class="summary-item">
+
+              <div class="summary-item" v-if="budget.budget_items && budget.budget_items.length > 0">
                 <span class="summary-label">
-                  <i class="pi pi-list"></i> Categorías Planificadas
+                  <i class="pi pi-money-bill"></i>
+                  Total planificado
+                </span>
+                <span class="summary-value">{{ formatCurrency(calculateTotalPlanned(budget.budget_items)) }}</span>
+              </div>
+
+              <div class="summary-item" v-if="budget.budget_items && budget.budget_items.length > 0">
+                <span class="summary-label">
+                  <i class="pi pi-list"></i>
+                  Categorias planificadas
                 </span>
                 <span class="summary-value">{{ budget.budget_items.length }}</span>
               </div>
-              <div class="summary-item">
+
+              <div class="summary-item empty-plan-item" v-else>
                 <span class="summary-label">
-                  <i class="pi pi-money-bill"></i> Total Planificado
+                  <i class="pi pi-folder-open"></i>
+                  Planificacion
                 </span>
-                <span class="summary-value">
-                  {{ formatCurrency(calculateTotalPlanned(budget.budget_items)) }}
-                </span>
+                <span class="summary-value">Sin categorias definidas</span>
               </div>
             </div>
           </div>
@@ -148,52 +198,54 @@
 
         <template #footer>
           <div class="budget-actions">
-            <Button 
+            <Button
               label="Ver Detalles"
               icon="pi pi-eye"
-              text
+              class="budget-detail-button"
               @click.stop="viewBudget(budget._id)"
             />
-            <Button 
-              label="Editar"
-              icon="pi pi-pencil"
-              text
-              severity="secondary"
-              @click.stop="editBudget(budget)"
-              v-tooltip.top="'Editar presupuesto y categorías'"
-            />
-            <Button 
-              label="Categorías"
-              icon="pi pi-tags"
-              text
-              severity="info"
-              @click.stop="editBudget(budget)"
-              v-tooltip.top="'Editar categorías y montos planificados'"
-            />
-            <Button 
-              v-if="budget.status === 'active'"
-              label="Cerrar"
-              icon="pi pi-lock"
-              text
-              severity="warning"
-              @click.stop="confirmCloseBudget(budget)"
-            />
-            <Button 
-              label="Eliminar"
-              icon="pi pi-trash"
-              text
-              severity="danger"
-              @click.stop="confirmDeleteBudget(budget)"
-            />
+
+            <div class="budget-actions-grid">
+              <Button
+                label="Editar"
+                icon="pi pi-pencil"
+                severity="secondary"
+                outlined
+                @click.stop="editBudget(budget)"
+                v-tooltip.top="'Editar presupuesto y categorías'"
+              />
+              <Button
+                label="Categorías"
+                icon="pi pi-tags"
+                severity="info"
+                outlined
+                @click.stop="editBudget(budget)"
+                v-tooltip.top="'Editar categorías y montos planificados'"
+              />
+              <Button
+                v-if="budget.status === 'active' || budget.status === 'closed'"
+                :label="budget.status === 'active' ? 'Cerrar' : 'Abrir'"
+                :icon="budget.status === 'active' ? 'pi pi-lock' : 'pi pi-lock-open'"
+                :severity="budget.status === 'active' ? 'warning' : 'success'"
+                outlined
+                @click.stop="toggleBudgetStatus(budget)"
+              />
+              <Button
+                label="Eliminar"
+                icon="pi pi-trash"
+                severity="danger"
+                text
+                @click.stop="confirmDeleteBudget(budget)"
+              />
+            </div>
           </div>
         </template>
       </Card>
     </div>
 
-    <!-- Create/Edit Dialog -->
-    <Dialog 
-      v-model:visible="showCreateDialog" 
-      modal 
+    <Dialog
+      v-model:visible="showCreateDialog"
+      modal
       :header="editingBudget ? 'Editar Presupuesto' : 'Crear Presupuesto'"
       :style="{ width: '600px' }"
       class="budget-dialog"
@@ -201,9 +253,9 @@
       <div class="dialog-content">
         <div class="form-field">
           <label for="budgetName">Nombre del Presupuesto *</label>
-          <InputText 
+          <InputText
             id="budgetName"
-            v-model="budgetForm.name" 
+            v-model="budgetForm.name"
             placeholder="ej. Presupuesto Marzo 2026"
             class="w-full"
           />
@@ -212,7 +264,7 @@
         <div class="form-row">
           <div class="form-field">
             <label for="startDate">Fecha Inicio *</label>
-            <Calendar 
+            <Calendar
               id="startDate"
               v-model="budgetForm.start_date"
               dateFormat="dd/mm/yy"
@@ -222,7 +274,7 @@
           </div>
           <div class="form-field">
             <label for="endDate">Fecha Fin *</label>
-            <Calendar 
+            <Calendar
               id="endDate"
               v-model="budgetForm.end_date"
               dateFormat="dd/mm/yy"
@@ -234,7 +286,7 @@
 
         <div class="form-field">
           <label for="status">Estado *</label>
-          <Select 
+          <Select
             id="status"
             v-model="budgetForm.status"
             :options="statusOptions"
@@ -247,20 +299,22 @@
 
         <div class="form-field">
           <label for="budgetMonth">Mes del Presupuesto *</label>
-          <InputText 
+          <InputText
             id="budgetMonth"
-            v-model="budgetForm.budget_month" 
+            v-model="budgetForm.budget_month"
             placeholder="ej. Marzo-2026"
             class="w-full"
           />
           <small class="form-help">Formato: Mes-Año (ej. Marzo-2026)</small>
         </div>
 
-        <!-- Budget Items Section -->
         <div class="budget-items-section">
           <div class="section-header">
-            <h4>Items del Presupuesto</h4>
-            <Button 
+            <div>
+              <span class="section-kicker">Planificacion</span>
+              <h4>Items del Presupuesto</h4>
+            </div>
+            <Button
               label="Agregar Categoría"
               icon="pi pi-plus"
               size="small"
@@ -274,17 +328,17 @@
           </div>
 
           <div v-else class="budget-items-list">
-            <Card 
-              v-for="(item, index) in budgetForm.budget_items" 
+            <Card
+              v-for="(item, index) in budgetForm.budget_items"
               :key="index"
               class="budget-item-card"
             >
               <template #content>
                 <div class="item-form">
-                  <div class="form-row">
+                  <div class="form-row item-row">
                     <div class="form-group flex-2">
                       <label>Categoría *</label>
-                      <Select 
+                      <Select
                         v-model="item.category"
                         :options="categoryStore.sortedExpenseCategories"
                         optionLabel="name"
@@ -304,7 +358,7 @@
 
                     <div class="form-group">
                       <label>Monto Planificado *</label>
-                      <InputNumber 
+                      <InputNumber
                         v-model="item.planned_amount"
                         mode="currency"
                         currency="EUR"
@@ -316,7 +370,7 @@
                     </div>
 
                     <div class="form-group-actions">
-                      <Button 
+                      <Button
                         icon="pi pi-trash"
                         severity="danger"
                         text
@@ -335,15 +389,15 @@
           </div>
         </div>
       </div>
-      
+
       <template #footer>
-        <Button 
-          label="Cancelar" 
-          text 
+        <Button
+          label="Cancelar"
+          text
           @click="closeDialog"
         />
-        <Button 
-          :label="editingBudget ? 'Actualizar' : 'Crear'" 
+        <Button
+          :label="editingBudget ? 'Actualizar' : 'Crear'"
           icon="pi pi-check"
           @click="saveBudget"
           :loading="budgetStore.loading"
@@ -352,10 +406,9 @@
       </template>
     </Dialog>
 
-    <!-- Delete Confirmation Dialog -->
-    <Dialog 
-      v-model:visible="showDeleteDialog" 
-      modal 
+    <Dialog
+      v-model:visible="showDeleteDialog"
+      modal
       header="Confirmar Eliminación"
       :style="{ width: '450px' }"
     >
@@ -364,15 +417,15 @@
         <i class="pi pi-exclamation-triangle"></i>
         Este presupuesto tiene {{ budgetToDelete.summary.transactions_count }} transacciones asociadas.
       </p>
-      
+
       <template #footer>
-        <Button 
-          label="Cancelar" 
-          text 
+        <Button
+          label="Cancelar"
+          text
           @click="showDeleteDialog = false"
         />
-        <Button 
-          label="Eliminar" 
+        <Button
+          label="Eliminar"
           icon="pi pi-trash"
           @click="deleteBudget"
           :loading="budgetStore.loading"
@@ -402,7 +455,6 @@ const categoryStore = useCategoryStore()
 const toast = useToast()
 const { formatCurrency, formatDate, formatBudgetStatus } = useFormatters()
 
-// Helper function for icon normalization
 const normalizeIcon = (icon) => {
   if (!icon) return 'pi pi-tag'
   if (icon.startsWith('pi pi-')) return icon
@@ -417,7 +469,6 @@ const calculateTotalPlanned = (budgetItems) => {
   }, 0)
 }
 
-// State
 const currentTab = ref('active')
 const showCreateDialog = ref(false)
 const showDeleteDialog = ref(false)
@@ -439,15 +490,14 @@ const statusOptions = [
   { label: 'Borrador', value: 'draft' }
 ]
 
-// Computed
 const filteredBudgets = computed(() => {
-  const budgets = currentTab.value === 'active' 
-    ? budgetStore.activeBudgets 
+  const budgets = currentTab.value === 'active'
+    ? budgetStore.activeBudgets
     : currentTab.value === 'closed'
-    ? budgetStore.closedBudgets
-    : budgetStore.draftBudgets
-  
-  return budgets.map(budget => ({
+      ? budgetStore.closedBudgets
+      : budgetStore.draftBudgets
+
+  return budgets.map((budget) => ({
     ...budget,
     summary: budgetStore.budgetSummaries[budget._id]
   }))
@@ -459,19 +509,94 @@ const totalPlanned = computed(() => {
   }, 0)
 })
 
-// Lifecycle
+const currentTabSummary = computed(() => {
+  if (currentTab.value === 'closed') {
+    return {
+      label: 'Cerrados',
+      description: 'Analiza presupuestos finalizados y revisa el resultado real frente a la planificacion.'
+    }
+  }
+
+  if (currentTab.value === 'draft') {
+    return {
+      label: 'Borradores',
+      description: 'Prepara nuevas versiones de presupuesto antes de llevarlas a ejecucion.'
+    }
+  }
+
+  return {
+    label: 'Activos',
+    description: 'Monitorea presupuestos vigentes, balance disponible y avance operativo sin perder detalle.'
+  }
+})
+
+const visibleBalanceTotal = computed(() => {
+  return filteredBudgets.value.reduce((sum, budget) => sum + (budget.summary?.balance || 0), 0)
+})
+
+const visibleTransactionsTotal = computed(() => {
+  return filteredBudgets.value.reduce((sum, budget) => sum + (budget.summary?.transactions_count || 0), 0)
+})
+
+const visiblePlannedTotal = computed(() => {
+  return filteredBudgets.value.reduce((sum, budget) => sum + calculateTotalPlanned(budget.budget_items), 0)
+})
+
+const plannedCategoriesCount = computed(() => {
+  return filteredBudgets.value.reduce((sum, budget) => sum + (budget.budget_items?.length || 0), 0)
+})
+
 onMounted(async () => {
   await Promise.all([
     budgetStore.fetchBudgets(),
     categoryStore.fetchCategories()
   ])
-  // Load summaries for all budgets
+
   for (const budget of budgetStore.budgets) {
     await budgetStore.getBudgetSummary(budget._id)
   }
 })
 
-// Methods
+const getBudgetInitial = (budget) => {
+  return budget.name?.trim()?.charAt(0)?.toUpperCase() || 'B'
+}
+
+const getBudgetHealth = (budget) => {
+  const balance = budget.summary?.balance || 0
+  const planned = calculateTotalPlanned(budget.budget_items)
+  const transactions = budget.summary?.transactions_count || 0
+
+  if (balance < 0) {
+    return {
+      tone: 'danger',
+      label: 'En riesgo',
+      description: 'El gasto ejecutado ya presiona el margen disponible.'
+    }
+  }
+
+  if (transactions === 0 && planned === 0) {
+    return {
+      tone: 'muted',
+      label: 'Sin movimiento',
+      description: 'Aun no hay actividad ni planificacion cargada.'
+    }
+  }
+
+  if (planned > 0 && Math.abs(balance) <= planned * 0.15) {
+    return {
+      tone: 'warning',
+      label: 'Ajustado',
+      description: 'Conviene vigilar el margen restante del presupuesto.'
+    }
+  }
+
+  return {
+    tone: 'success',
+    label: 'Saludable',
+    description: 'Mantiene un comportamiento estable y controlado.'
+  }
+}
+
 const addBudgetItem = () => {
   budgetForm.value.budget_items.push({
     category: '',
@@ -524,7 +649,6 @@ const saveBudget = async () => {
     return
   }
 
-  // Validate budget_month format
   const monthPattern = /^[A-Za-z]+-\d{4}$/
   if (!monthPattern.test(budgetForm.value.budget_month)) {
     toast.add({
@@ -579,13 +703,29 @@ const saveBudget = async () => {
   }
 }
 
-const confirmCloseBudget = (budget) => {
-  toast.add({
-    severity: 'info',
-    summary: 'Cerrar Presupuesto',
-    detail: `Funcionalidad próximamente para: ${budget.name}`,
-    life: 3000
-  })
+const toggleBudgetStatus = async (budget) => {
+  const nextStatus = budget.status === 'closed' ? 'active' : 'closed'
+  const actionLabel = nextStatus === 'closed' ? 'cerrado' : 'abierto'
+
+  try {
+    await budgetStore.updateBudget(budget._id, {
+      status: nextStatus
+    })
+
+    toast.add({
+      severity: 'success',
+      summary: `Presupuesto ${actionLabel}`,
+      detail: `"${budget.name}" ahora está ${actionLabel}.`,
+      life: 3000
+    })
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: `No se pudo ${nextStatus === 'closed' ? 'cerrar' : 'abrir'} el presupuesto`,
+      life: 3000
+    })
+  }
 }
 
 const confirmDeleteBudget = (budget) => {
@@ -618,7 +758,10 @@ const deleteBudget = async () => {
 <style scoped>
 .budget-manager {
   width: 100%;
-  animation: fadeIn 0.5s ease-in;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: fadeIn 0.45s ease-in;
 }
 
 @keyframes fadeIn {
@@ -632,46 +775,180 @@ const deleteBudget = async () => {
   }
 }
 
-/* Header */
-.page-header {
-  margin-bottom: 2rem;
+.hero-panel,
+.status-shell,
+.empty-state,
+.budget-item {
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--shadow-sm);
 }
 
-.header-content {
+.hero-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(300px, 1fr);
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border-radius: 32px;
+  background: var(--hero-gradient);
+  overflow: hidden;
+  position: relative;
+}
+
+.hero-panel::after {
+  content: '';
+  position: absolute;
+  right: -5rem;
+  bottom: -5rem;
+  width: 16rem;
+  height: 16rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(15, 139, 111, 0.16) 0%, rgba(15, 139, 111, 0) 70%);
+}
+
+.hero-copy,
+.hero-metrics-grid {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-copy {
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 2rem;
-  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.header-text {
-  flex: 1;
+.hero-kicker,
+.section-kicker {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--primary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .page-title {
-  font-size: 2.25rem;
-  font-weight: 700;
-  color: var(--text-color);
-  margin-bottom: 0.5rem;
-  letter-spacing: -0.02em;
+  max-width: 12ch;
+  font-size: clamp(2.2rem, 3.8vw, 3.4rem);
+  font-weight: 800;
+  color: var(--heading-color);
+  letter-spacing: -0.04em;
 }
 
 .page-subtitle {
-  font-size: 1rem;
+  max-width: 60ch;
   color: var(--text-color-secondary);
-  font-weight: 400;
+  line-height: 1.7;
+  font-size: 1rem;
 }
 
-/* Status Tabs */
-.status-tabs {
+.hero-actions {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  align-items: center;
+  gap: 0.85rem;
   flex-wrap: wrap;
 }
 
-/* States */
+.hero-primary-action {
+  box-shadow: 0 18px 30px rgba(15, 139, 111, 0.2);
+}
+
+.hero-tag-card,
+.hero-metric-tile,
+.status-summary-pill,
+.summary-item,
+.empty-items,
+.total-planned {
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(12px);
+}
+
+.hero-tag-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.85rem 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(124, 97, 61, 0.12);
+}
+
+.hero-tag-card span,
+.status-summary-pill span {
+  color: var(--text-color-secondary);
+  font-size: 0.82rem;
+}
+
+.hero-tag-card strong,
+.status-summary-pill strong {
+  color: var(--heading-color);
+  font-size: 1rem;
+}
+
+.hero-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.hero-metric-tile {
+  padding: 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(124, 97, 61, 0.12);
+}
+
+.hero-metric-tile span {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--text-color-secondary);
+  font-size: 0.82rem;
+}
+
+.hero-metric-tile strong {
+  color: var(--heading-color);
+  font-size: 1.2rem;
+}
+
+.hero-metric-tile strong.negative {
+  color: var(--danger-color);
+}
+
+.status-shell {
+  padding: 1.25rem;
+  border-radius: 28px;
+  background: color-mix(in srgb, var(--surface-card) 84%, transparent);
+}
+
+.status-shell-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.status-shell-header h2 {
+  font-size: 1.2rem;
+  margin-top: 0.6rem;
+}
+
+.status-summary-pill {
+  min-width: 180px;
+  padding: 0.85rem 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(124, 97, 61, 0.12);
+}
+
+.status-tabs {
+  display: flex;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -685,6 +962,8 @@ const deleteBudget = async () => {
 .empty-state {
   text-align: center;
   padding: 4rem 1rem;
+  border-radius: 28px;
+  background: color-mix(in srgb, var(--surface-card) 84%, transparent);
   color: var(--text-color-secondary);
 }
 
@@ -695,13 +974,10 @@ const deleteBudget = async () => {
 }
 
 .empty-state h2 {
-  font-size: 1.5rem;
-  color: var(--text-color);
   margin-bottom: 0.5rem;
 }
 
 .empty-state p {
-  font-size: 1rem;
   margin-bottom: 2rem;
 }
 
@@ -710,56 +986,158 @@ const deleteBudget = async () => {
   align-items: center;
   gap: 0.75rem;
   padding: 1.5rem;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 12px;
-  color: #dc2626;
+  border-radius: 20px;
+  background: rgba(214, 69, 69, 0.08);
+  border: 1px solid rgba(214, 69, 69, 0.16);
+  color: var(--danger-color);
 }
 
-/* Budgets List */
 .budgets-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 1.25rem;
 }
 
 .budget-item {
-  border: 1px solid var(--surface-border);
-  border-radius: 16px;
+  border-radius: 28px;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.budget-item :deep(.p-card-body) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.budget-item :deep(.p-card-content) {
+  flex: 1;
+  padding: 1rem 1.5rem 1.5rem;
+}
+
+.budget-item :deep(.p-card-footer) {
+  margin-top: auto;
+  padding: 1.1rem 1.5rem 1.5rem;
+  border-top: 1px solid rgba(124, 97, 61, 0.08);
 }
 
 .budget-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: var(--primary-color);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(15, 139, 111, 0.18);
 }
 
 .budget-header {
-  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1.5rem 1.5rem 0.25rem;
+}
+
+.budget-heading {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.budget-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #0f8b6f 0%, #d97706 100%);
+  color: white;
+  font-weight: 800;
+  box-shadow: 0 14px 24px rgba(15, 139, 111, 0.22);
+}
+
+.budget-meta-top {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.55rem;
 }
 
 .budget-info h3 {
+  margin: 0 0 0.45rem;
   font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text-color);
-  margin: 0 0 0.75rem 0;
+  color: var(--heading-color);
 }
 
 .budget-meta {
   display: flex;
-  align-items: center;
-  gap: 1rem;
   flex-wrap: wrap;
+  gap: 0.85rem;
 }
 
 .budget-period {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
+  gap: 0.4rem;
   color: var(--text-color-secondary);
+  font-size: 0.88rem;
+}
+
+.budget-health {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.budget-health.is-success {
+  background: rgba(15, 139, 111, 0.1);
+  color: var(--success-color);
+}
+
+.budget-health.is-warning {
+  background: rgba(217, 119, 6, 0.12);
+  color: var(--warning-color);
+}
+
+.budget-health.is-danger {
+  background: rgba(214, 69, 69, 0.12);
+  color: var(--danger-color);
+}
+
+.budget-health.is-muted {
+  background: rgba(107, 114, 128, 0.12);
+  color: var(--text-color-secondary);
+}
+
+.budget-balance-panel {
+  min-width: 160px;
+  padding: 1rem;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--surface-ground) 72%, transparent);
+  border: 1px solid rgba(124, 97, 61, 0.1);
+}
+
+.budget-balance-panel span {
+  display: block;
+  color: var(--text-color-secondary);
+  font-size: 0.8rem;
+  margin-bottom: 0.3rem;
+}
+
+.budget-balance-panel strong {
+  display: block;
+  font-size: 1.45rem;
+  letter-spacing: -0.03em;
+  color: var(--heading-color);
+}
+
+.budget-balance-panel small {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--text-color-secondary);
+  line-height: 1.5;
 }
 
 .budget-summary {
@@ -768,53 +1146,72 @@ const deleteBudget = async () => {
   gap: 1rem;
 }
 
-.summary-row {
+.summary-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.summary-row.budget-items-info {
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--surface-border);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
 }
 
 .summary-item {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.35rem;
+  padding: 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(124, 97, 61, 0.08);
+}
+
+.emphasis-item {
+  background: linear-gradient(135deg, rgba(15, 139, 111, 0.08) 0%, rgba(217, 119, 6, 0.06) 100%);
 }
 
 .summary-label {
-  font-size: 0.875rem;
-  color: var(--text-color-secondary);
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.35rem;
+  color: var(--text-color-secondary);
+  font-size: 0.86rem;
 }
 
 .summary-value {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-color);
+  color: var(--heading-color);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.empty-plan-item .summary-value {
+  font-size: 1rem;
 }
 
 .text-green {
-  color: #10b981 !important;
+  color: var(--success-color) !important;
 }
 
 .text-red {
-  color: #ef4444 !important;
+  color: var(--danger-color) !important;
 }
 
 .budget-actions {
   display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
-/* Dialog */
+.budget-detail-button {
+  width: 100%;
+  box-shadow: 0 14px 26px rgba(15, 139, 111, 0.16);
+}
+
+.budget-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.budget-actions-grid :deep(.p-button) {
+  justify-content: center;
+}
+
 .dialog-content {
   padding: 1rem 0;
   display: flex;
@@ -822,7 +1219,8 @@ const deleteBudget = async () => {
   gap: 1.5rem;
 }
 
-.form-field {
+.form-field,
+.form-group {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -834,10 +1232,15 @@ const deleteBudget = async () => {
   gap: 1rem;
 }
 
-.form-field label {
+.form-field label,
+.form-group label {
   font-weight: 600;
   color: var(--text-color);
   font-size: 0.9375rem;
+}
+
+.form-help {
+  color: var(--text-color-secondary);
 }
 
 .w-full {
@@ -849,13 +1252,12 @@ const deleteBudget = async () => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: rgba(251, 146, 60, 0.1);
-  border-radius: 8px;
-  color: #f59e0b;
+  background: rgba(217, 119, 6, 0.1);
+  border-radius: 12px;
+  color: var(--warning-color);
   margin-top: 0.5rem;
 }
 
-/* Budget Items Section */
 .budget-items-section {
   display: flex;
   flex-direction: column;
@@ -869,12 +1271,12 @@ const deleteBudget = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
 }
 
 .section-header h4 {
-  margin: 0;
+  margin: 0.55rem 0 0;
   font-size: 1rem;
-  color: var(--text-color);
 }
 
 .budget-items-list {
@@ -884,34 +1286,19 @@ const deleteBudget = async () => {
 }
 
 .budget-item-card {
-  background: var(--surface-ground);
+  background: color-mix(in srgb, var(--surface-ground) 74%, transparent);
 }
 
 .item-form {
   width: 100%;
 }
 
-.item-form .form-row {
-  display: flex;
-  gap: 0.75rem;
+.item-row {
   align-items: end;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  flex: 1;
 }
 
 .form-group.flex-2 {
   flex: 2;
-}
-
-.form-group label {
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: var(--text-color);
 }
 
 .form-group-actions {
@@ -924,8 +1311,8 @@ const deleteBudget = async () => {
   text-align: center;
   padding: 2rem;
   color: var(--text-color-secondary);
-  background: var(--surface-ground);
-  border-radius: 8px;
+  border-radius: 16px;
+  border: 1px dashed var(--surface-border);
 }
 
 .empty-items p {
@@ -935,10 +1322,10 @@ const deleteBudget = async () => {
 .total-planned {
   display: flex;
   justify-content: space-between;
-  padding: 1rem;
-  background: var(--primary-50);
-  border-radius: 8px;
-  font-weight: 600;
+  padding: 1rem 1.1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 139, 111, 0.14);
+  font-weight: 700;
 }
 
 .total-planned .label {
@@ -967,31 +1354,70 @@ const deleteBudget = async () => {
   font-weight: 600;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .page-title {
-    font-size: 1.75rem;
-  }
-
-  .header-content {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .summary-row {
+@media (max-width: 1100px) {
+  .hero-panel {
     grid-template-columns: 1fr;
   }
+}
 
+@media (max-width: 768px) {
+  .budget-manager {
+    gap: 1rem;
+  }
+
+  .hero-panel,
+  .status-shell {
+    padding: 1.1rem;
+    border-radius: 24px;
+  }
+
+  .page-title {
+    font-size: 2rem;
+  }
+
+  .status-shell-header,
+  .budget-header,
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero-metrics-grid,
+  .summary-grid,
+  .budgets-list,
   .form-row {
     grid-template-columns: 1fr;
   }
 
   .budget-actions {
-    flex-direction: column;
+    width: 100%;
+  }
+
+  .budget-actions-grid,
+  .hero-primary-action {
+    width: 100%;
+  }
+
+  .budget-actions-grid {
+    grid-template-columns: 1fr;
   }
 
   .budget-actions :deep(.p-button) {
     width: 100%;
+  }
+
+  .hero-actions,
+  .status-tabs {
+    width: 100%;
+  }
+
+  .status-tabs :deep(.p-button) {
+    width: 100%;
+  }
+
+  .budget-balance-panel {
+    width: 100%;
+    min-width: 0;
   }
 }
 </style>

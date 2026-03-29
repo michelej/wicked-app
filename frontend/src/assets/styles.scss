@@ -1,7 +1,7 @@
 /* Global Styles for Wicked App - Professional Dashboard */
 
 /* Import Google Fonts - Distinctive Typography */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 /* Layout Variables - Light Theme */
 :root {
@@ -582,4 +582,169 @@ input, textarea, select {
   .no-print {
     display: none !important;
   }
+}
+
+:root {
+  --surface-ground: #f4efe6;
+  --surface-section: rgba(255, 252, 246, 0.82);
+  --surface-card: rgba(255, 255, 255, 0.88);
+  --surface-overlay: #fffdf8;
+  --surface-border: rgba(108, 93, 72, 0.14);
+  --surface-hover: #f4ecdf;
+  --surface-muted: #ebe3d5;
+  --surface-strong: #ffffff;
+  --text-color: #1f2937;
+  --text-color-secondary: #6b7280;
+  --text-color-soft: #8b95a7;
+  --heading-color: #101827;
+  --primary-color: #0f8b6f;
+  --primary-color-text: #ffffff;
+  --primary-50: #e8f7f2;
+  --primary-100: #caeee2;
+  --primary-200: #9ddfcc;
+  --primary-300: #6dcfb4;
+  --primary-400: #42bb9c;
+  --primary-500: #0f8b6f;
+  --primary-600: #0d765f;
+  --primary-700: #0d604f;
+  --primary-800: #0d493f;
+  --primary-900: #0d362f;
+  --accent-color: #d97706;
+  --accent-soft: #fff0d8;
+  --success-color: #0f8b6f;
+  --danger-color: #d64545;
+  --warning-color: #d97706;
+  --hero-gradient: linear-gradient(135deg, #fff9ef 0%, #f7f0e5 46%, #edf7f0 100%);
+  --panel-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 250, 242, 0.86) 100%);
+  --shadow-sm: 0 10px 24px rgba(30, 41, 59, 0.06);
+  --shadow-md: 0 16px 36px rgba(30, 41, 59, 0.1);
+  --shadow-lg: 0 24px 56px rgba(30, 41, 59, 0.12);
+  --shadow-xl: 0 36px 88px rgba(30, 41, 59, 0.14);
+  --border-radius: 20px;
+  --border-radius-sm: 14px;
+  --border-radius-lg: 28px;
+  --font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  --font-family-mono: 'IBM Plex Mono', 'Courier New', monospace;
+}
+
+.app-dark {
+  --surface-ground: #101924;
+  --surface-section: rgba(17, 27, 38, 0.82);
+  --surface-card: rgba(19, 32, 46, 0.84);
+  --surface-overlay: #172333;
+  --surface-border: rgba(148, 163, 184, 0.16);
+  --surface-hover: rgba(36, 49, 67, 0.96);
+  --surface-muted: #1d2b3b;
+  --surface-strong: #1b2b3f;
+  --text-color: #f1f5f9;
+  --text-color-secondary: #94a3b8;
+  --text-color-soft: #64748b;
+  --heading-color: #ffffff;
+  --primary-color: #42bb9c;
+  --primary-color-text: #ffffff;
+  --hero-gradient: linear-gradient(135deg, rgba(25, 38, 55, 0.95) 0%, rgba(17, 27, 38, 0.98) 50%, rgba(13, 54, 47, 0.8) 100%);
+  --panel-gradient: linear-gradient(180deg, rgba(19, 32, 46, 0.9) 0%, rgba(16, 25, 36, 0.82) 100%);
+  --shadow-sm: 0 10px 24px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 18px 38px rgba(0, 0, 0, 0.26);
+  --shadow-lg: 0 28px 58px rgba(0, 0, 0, 0.32);
+  --shadow-xl: 0 42px 92px rgba(0, 0, 0, 0.38);
+}
+
+html {
+  background: var(--surface-ground);
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--surface-ground);
+  background-image: radial-gradient(circle at top left, rgba(217, 119, 6, 0.07), transparent 24%), radial-gradient(circle at bottom right, rgba(15, 139, 111, 0.08), transparent 26%);
+}
+
+::selection {
+  background: rgba(15, 139, 111, 0.18);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--heading-color);
+}
+
+.card,
+.p-card {
+  background: var(--panel-gradient);
+  backdrop-filter: blur(18px);
+}
+
+.p-card {
+  border-radius: var(--border-radius);
+}
+
+.p-datatable {
+  border: 1px solid var(--surface-border);
+  border-radius: calc(var(--border-radius) - 4px);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface-card) 86%, transparent);
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  background: color-mix(in srgb, var(--surface-ground) 88%, transparent);
+}
+
+.p-datatable .p-datatable-tbody > tr > td,
+.p-paginator {
+  background: transparent;
+}
+
+.p-datatable .p-datatable-tbody > tr:hover {
+  background: color-mix(in srgb, var(--surface-hover) 86%, transparent);
+}
+
+.p-dialog-mask {
+  backdrop-filter: blur(8px);
+}
+
+.p-dialog {
+  border-radius: 24px;
+  overflow: hidden;
+  backdrop-filter: blur(18px);
+}
+
+.p-dialog .p-dialog-header,
+.p-dialog .p-dialog-footer {
+  background: color-mix(in srgb, var(--surface-section) 92%, transparent);
+}
+
+.p-dialog .p-dialog-content {
+  background: color-mix(in srgb, var(--surface-card) 94%, transparent);
+}
+
+.p-dropdown,
+.p-multiselect,
+.p-textarea,
+.p-inputtextarea,
+.p-inputtext {
+  background: color-mix(in srgb, var(--surface-card) 84%, transparent);
+}
+
+.p-button {
+  font-weight: 700;
+  border-radius: 14px;
+  padding: 0.8rem 1.35rem;
+  letter-spacing: -0.01em;
+}
+
+.p-button.p-button-text,
+.p-button.p-button-text:hover {
+  box-shadow: none;
+}
+
+.p-button.p-button-outlined {
+  background: color-mix(in srgb, var(--surface-card) 80%, transparent);
+}
+
+.p-tag {
+  border-radius: 999px;
+}
+
+.p-toast .p-toast-message {
+  backdrop-filter: blur(18px);
 }

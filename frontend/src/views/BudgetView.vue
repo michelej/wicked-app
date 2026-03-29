@@ -40,6 +40,14 @@
             </div>
           </div>
           <div class="header-actions">
+            <Button
+              v-if="budget.status === 'active' || budget.status === 'closed'"
+              :label="budget.status === 'active' ? 'Cerrar Presupuesto' : 'Abrir Presupuesto'"
+              :icon="budget.status === 'active' ? 'pi pi-lock' : 'pi pi-lock-open'"
+              :severity="budget.status === 'active' ? 'warning' : 'success'"
+              outlined
+              @click="toggleBudgetStatus"
+            />
             <Button 
               label="Aplicar Gastos Recurrentes"
               icon="pi pi-replay"
@@ -1133,6 +1141,33 @@ const loadBudget = async () => {
 
 const goBack = () => {
   router.push('/budgets')
+}
+
+const toggleBudgetStatus = async () => {
+  const nextStatus = budget.value.status === 'closed' ? 'active' : 'closed'
+  const actionLabel = nextStatus === 'closed' ? 'cerrado' : 'abierto'
+
+  try {
+    await budgetStore.updateBudget(budgetId.value, {
+      status: nextStatus
+    })
+
+    toast.add({
+      severity: 'success',
+      summary: `Presupuesto ${actionLabel}`,
+      detail: `"${budget.value.name}" ahora está ${actionLabel}.`,
+      life: 3000
+    })
+
+    await loadBudget()
+  } catch (err) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: `No se pudo ${nextStatus === 'closed' ? 'cerrar' : 'abrir'} el presupuesto`,
+      life: 3000
+    })
+  }
 }
 
 // Budget Items Progress Helpers

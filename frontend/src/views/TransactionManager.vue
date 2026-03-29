@@ -1,24 +1,68 @@
 <template>
   <div class="transaction-manager">
-    <!-- Header -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="header-text">
-          <h1 class="page-title">Gestión de Transacciones</h1>
-          <p class="page-subtitle">Administra todas tus transacciones</p>
+    <section class="hero-panel">
+      <div class="hero-copy">
+        <span class="hero-kicker">Transaction desk</span>
+        <h1 class="page-title">Controla movimientos y detecta señales clave al instante.</h1>
+        <p class="page-subtitle">
+          Revisa ingresos, gastos y pendientes desde una vista mas ordenada, manteniendo intacto el detalle operativo de cada transaccion.
+        </p>
+
+        <div class="hero-actions">
+          <Button
+            label="Nueva Transacción"
+            icon="pi pi-plus"
+            severity="success"
+            class="hero-primary-action"
+            @click="showCreateDialog = true"
+          />
+          <div class="hero-tag-card">
+            <span>Filtros activos</span>
+            <strong>{{ activeFilterCount }}</strong>
+          </div>
         </div>
-        <Button 
-          label="Nueva Transacción" 
-          icon="pi pi-plus"
-          @click="showCreateDialog = true"
-          severity="success"
-        />
+      </div>
+
+      <div class="hero-metrics-grid">
+        <div class="hero-metric-tile">
+          <span>Total transacciones</span>
+          <strong>{{ filteredTransactions.length }}</strong>
+        </div>
+        <div class="hero-metric-tile">
+          <span>Total ingresos</span>
+          <strong>{{ formatCurrency(totalIncome) }}</strong>
+        </div>
+        <div class="hero-metric-tile">
+          <span>Total gastos</span>
+          <strong>{{ formatCurrency(totalExpense) }}</strong>
+        </div>
+        <div class="hero-metric-tile">
+          <span>Balance</span>
+          <strong :class="{ negative: balance < 0 }">{{ formatCurrency(balance) }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <div class="insight-strip">
+      <div class="insight-item">
+        <span class="insight-label">Cobrado</span>
+        <strong>{{ chargedTransactionsCount }}</strong>
+        <p>movimientos ya conciliados.</p>
+      </div>
+      <div class="insight-item">
+        <span class="insight-label">Pendiente</span>
+        <strong>{{ pendingTransactionsCount }}</strong>
+        <p>movimientos aun por confirmar.</p>
+      </div>
+      <div class="insight-item">
+        <span class="insight-label">Ticket promedio</span>
+        <strong>{{ averageTransactionAmount }}</strong>
+        <p>promedio por transaccion filtrada.</p>
       </div>
     </div>
 
-    <!-- Summary Stats -->
     <div class="stats-grid">
-      <div class="stat-card stat-card-1">
+      <div class="stat-card">
         <div class="stat-icon">
           <i class="pi pi-list"></i>
         </div>
@@ -28,7 +72,7 @@
         </div>
       </div>
 
-      <div class="stat-card stat-card-2">
+      <div class="stat-card">
         <div class="stat-icon">
           <i class="pi pi-arrow-down"></i>
         </div>
@@ -38,7 +82,7 @@
         </div>
       </div>
 
-      <div class="stat-card stat-card-3">
+      <div class="stat-card">
         <div class="stat-icon">
           <i class="pi pi-arrow-up"></i>
         </div>
@@ -48,12 +92,12 @@
         </div>
       </div>
 
-      <div class="stat-card stat-card-4">
+      <div class="stat-card">
         <div class="stat-icon">
           <i class="pi pi-wallet"></i>
         </div>
         <div class="stat-content">
-          <h3 class="stat-value" :class="{ 'negative': balance < 0 }">
+          <h3 class="stat-value" :class="{ negative: balance < 0 }">
             {{ formatCurrency(balance) }}
           </h3>
           <p class="stat-label">Balance</p>
@@ -61,13 +105,26 @@
       </div>
     </div>
 
-    <!-- Filters Card -->
     <Card class="filters-card">
       <template #content>
+        <div class="panel-header">
+          <div>
+            <span class="section-kicker">Filtrado</span>
+            <h2>Encuentra movimientos por presupuesto, categoria o estado.</h2>
+          </div>
+          <Button
+            label="Limpiar Filtros"
+            icon="pi pi-times"
+            text
+            @click="clearFilters"
+            class="clear-button"
+          />
+        </div>
+
         <div class="filters-grid">
-          <div class="filter-field">
+          <div class="filter-field search-field">
             <label>Buscar</label>
-            <InputText 
+            <InputText
               v-model="filters.search"
               placeholder="Categoría, banco, comentario..."
               class="w-full"
@@ -80,7 +137,7 @@
 
           <div class="filter-field">
             <label>Presupuesto</label>
-            <Select 
+            <Select
               v-model="filters.budgetId"
               :options="budgetOptions"
               optionLabel="label"
@@ -93,7 +150,7 @@
 
           <div class="filter-field">
             <label>Tipo</label>
-            <Select 
+            <Select
               v-model="filters.type"
               :options="typeOptions"
               optionLabel="label"
@@ -105,7 +162,7 @@
 
           <div class="filter-field">
             <label>Categoría</label>
-            <Select 
+            <Select
               v-model="filters.category"
               :options="categoryOptions"
               optionLabel="label"
@@ -119,7 +176,7 @@
 
           <div class="filter-field">
             <label>Estado</label>
-            <Select 
+            <Select
               v-model="filters.status"
               :options="statusOptions"
               optionLabel="label"
@@ -128,24 +185,24 @@
               class="w-full"
             />
           </div>
-
-          <div class="filter-field">
-            <Button 
-              label="Limpiar Filtros"
-              icon="pi pi-times"
-              text
-              @click="clearFilters"
-              class="clear-button"
-            />
-          </div>
         </div>
       </template>
     </Card>
 
-    <!-- Transactions Table -->
     <Card class="table-card">
       <template #content>
-        <DataTable 
+        <div class="panel-header table-header">
+          <div>
+            <span class="section-kicker">Resultado</span>
+            <h2>{{ filteredTransactions.length }} movimientos visibles</h2>
+          </div>
+          <div class="table-summary-pill">
+            <span>Pendientes</span>
+            <strong>{{ pendingTransactionsCount }}</strong>
+          </div>
+        </div>
+
+        <DataTable
           :value="filteredTransactions"
           :loading="transactionStore.loading"
           stripedRows
@@ -160,7 +217,7 @@
             <div class="empty-state">
               <i class="pi pi-inbox"></i>
               <p>No hay transacciones</p>
-              <Button 
+              <Button
                 label="Crear Primera Transacción"
                 icon="pi pi-plus"
                 @click="showCreateDialog = true"
@@ -183,7 +240,7 @@
 
           <Column field="type" header="Tipo" sortable>
             <template #body="{ data }">
-              <Tag 
+              <Tag
                 :value="formatTransactionType(data.type)"
                 :severity="data.type === 'income' ? 'success' : 'danger'"
               />
@@ -192,7 +249,7 @@
 
           <Column field="amount" header="Monto" sortable>
             <template #body="{ data }">
-              <span 
+              <span
                 class="amount-text"
                 :class="{ 'text-green': data.type === 'income', 'text-red': data.type === 'expense' }"
               >
@@ -201,7 +258,11 @@
             </template>
           </Column>
 
-          <Column field="bank" header="Banco" sortable />
+          <Column field="bank" header="Banco" sortable>
+            <template #body="{ data }">
+              <span class="bank-text">{{ data.bank }}</span>
+            </template>
+          </Column>
 
           <Column field="payment_method" header="Método" sortable>
             <template #body="{ data }">
@@ -211,7 +272,7 @@
 
           <Column field="is_charged" header="Estado" sortable>
             <template #body="{ data }">
-              <Tag 
+              <Tag
                 :value="data.is_charged ? 'Cobrado' : 'Pendiente'"
                 :severity="data.is_charged ? 'success' : 'warning'"
               />
@@ -221,7 +282,7 @@
           <Column header="Acciones" :exportable="false">
             <template #body="{ data }">
               <div class="action-buttons">
-                <Button 
+                <Button
                   v-if="!data.is_charged"
                   icon="pi pi-check"
                   text
@@ -230,7 +291,7 @@
                   v-tooltip.top="'Marcar como cobrado'"
                   @click.stop="markAsCharged(data)"
                 />
-                <Button 
+                <Button
                   icon="pi pi-pencil"
                   text
                   rounded
@@ -238,7 +299,7 @@
                   v-tooltip.top="'Editar'"
                   @click.stop="editTransaction(data)"
                 />
-                <Button 
+                <Button
                   icon="pi pi-trash"
                   text
                   rounded
@@ -253,8 +314,7 @@
       </template>
     </Card>
 
-    <!-- Create/Edit Dialog -->
-    <Dialog 
+    <Dialog
       v-model:visible="showCreateDialog"
       modal
       :header="editingTransaction ? 'Editar Transacción' : 'Nueva Transacción'"
@@ -265,14 +325,14 @@
         <div class="form-field">
           <label>Tipo *</label>
           <div class="button-group">
-            <Button 
+            <Button
               label="Ingreso"
               icon="pi pi-arrow-down"
               :severity="transactionForm.type === 'income' ? 'success' : 'secondary'"
               :outlined="transactionForm.type !== 'income'"
               @click="transactionForm.type = 'income'"
             />
-            <Button 
+            <Button
               label="Gasto"
               icon="pi pi-arrow-up"
               :severity="transactionForm.type === 'expense' ? 'danger' : 'secondary'"
@@ -284,7 +344,7 @@
 
         <div class="form-field">
           <label for="budget">Presupuesto *</label>
-          <Select 
+          <Select
             id="budget"
             v-model="transactionForm.budget_id"
             :options="activeBudgetOptions"
@@ -297,7 +357,7 @@
 
         <div class="form-field">
           <label for="amount">Monto *</label>
-          <InputNumber 
+          <InputNumber
             id="amount"
             v-model="transactionForm.amount"
             mode="currency"
@@ -310,7 +370,7 @@
 
         <div class="form-field">
           <label for="category">Categoría *</label>
-          <Select 
+          <Select
             id="category"
             v-model="transactionForm.category"
             :options="availableCategories"
@@ -333,7 +393,7 @@
         <div class="form-row">
           <div class="form-field">
             <label for="bank">Banco *</label>
-            <InputText 
+            <InputText
               id="bank"
               v-model="transactionForm.bank"
               placeholder="ej. BBVA"
@@ -342,7 +402,7 @@
           </div>
           <div class="form-field">
             <label for="paymentMethod">Método de Pago *</label>
-            <Select 
+            <Select
               id="paymentMethod"
               v-model="transactionForm.payment_method"
               :options="paymentMethodOptions"
@@ -356,7 +416,7 @@
 
         <div class="form-field">
           <label for="timestamp">Fecha y Hora *</label>
-          <Calendar 
+          <Calendar
             id="timestamp"
             v-model="transactionForm.timestamp"
             showTime
@@ -369,7 +429,7 @@
 
         <div class="form-field">
           <label for="comment">Comentario</label>
-          <Textarea 
+          <Textarea
             id="comment"
             v-model="transactionForm.comment"
             rows="3"
@@ -380,7 +440,7 @@
 
         <div class="form-field">
           <div class="checkbox-field">
-            <Checkbox 
+            <Checkbox
               v-model="transactionForm.is_charged"
               :binary="true"
               inputId="isCharged"
@@ -391,12 +451,12 @@
       </div>
 
       <template #footer>
-        <Button 
+        <Button
           label="Cancelar"
           text
           @click="closeDialog"
         />
-        <Button 
+        <Button
           :label="editingTransaction ? 'Actualizar' : 'Crear'"
           icon="pi pi-check"
           @click="saveTransaction"
@@ -406,8 +466,7 @@
       </template>
     </Dialog>
 
-    <!-- Delete Confirmation -->
-    <Dialog 
+    <Dialog
       v-model:visible="showDeleteDialog"
       modal
       header="Confirmar Eliminación"
@@ -415,17 +474,17 @@
     >
       <p>¿Estás seguro de que deseas eliminar esta transacción?</p>
       <p v-if="transactionToDelete" class="transaction-details">
-        <strong>{{ transactionToDelete.category }}</strong> - 
+        <strong>{{ transactionToDelete.category }}</strong> -
         {{ formatCurrency(transactionToDelete.amount) }}
       </p>
-      
+
       <template #footer>
-        <Button 
+        <Button
           label="Cancelar"
           text
           @click="showDeleteDialog = false"
         />
-        <Button 
+        <Button
           label="Eliminar"
           icon="pi pi-trash"
           @click="deleteTransaction"
@@ -447,7 +506,6 @@ import { useToast } from 'primevue/usetoast'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Select from 'primevue/select'
-import MultiSelect from 'primevue/multiselect'
 import Tag from 'primevue/tag'
 import Calendar from 'primevue/calendar'
 import InputNumber from 'primevue/inputnumber'
@@ -458,14 +516,13 @@ const transactionStore = useTransactionStore()
 const budgetStore = useBudgetStore()
 const categoryStore = useCategoryStore()
 const toast = useToast()
-const { 
-  formatCurrency, 
-  formatDateTime, 
+const {
+  formatCurrency,
+  formatDateTime,
   formatTransactionType,
   formatPaymentMethod
 } = useFormatters()
 
-// Helper function for icon normalization
 const normalizeIcon = (icon) => {
   if (!icon) return 'pi pi-tag'
   if (icon.startsWith('pi pi-')) return icon
@@ -473,7 +530,6 @@ const normalizeIcon = (icon) => {
   return `pi pi-${icon}`
 }
 
-// State
 const showCreateDialog = ref(false)
 const showDeleteDialog = ref(false)
 const editingTransaction = ref(null)
@@ -517,17 +573,16 @@ const paymentMethodOptions = [
   { label: 'Crédito', value: 'credit' }
 ]
 
-// Computed
 const budgetOptions = computed(() => [
   { label: 'Todos los presupuestos', value: null },
-  ...budgetStore.budgets.map(b => ({
+  ...budgetStore.budgets.map((b) => ({
     label: b.name,
     value: b._id
   }))
 ])
 
-const activeBudgetOptions = computed(() => 
-  budgetStore.activeBudgets.map(b => ({
+const activeBudgetOptions = computed(() =>
+  budgetStore.activeBudgets.map((b) => ({
     label: b.name,
     value: b._id
   }))
@@ -535,7 +590,7 @@ const activeBudgetOptions = computed(() =>
 
 const categoryOptions = computed(() => [
   { label: 'Todas las categorías', value: null },
-  ...categoryStore.activeCategories.map(c => ({
+  ...categoryStore.activeCategories.map((c) => ({
     label: c.name,
     value: c.name
   }))
@@ -544,7 +599,8 @@ const categoryOptions = computed(() => [
 const availableCategories = computed(() => {
   if (transactionForm.value.type === 'income') {
     return categoryStore.sortedIncomeCategories
-  } else if (transactionForm.value.type === 'expense') {
+  }
+  if (transactionForm.value.type === 'expense') {
     return categoryStore.sortedExpenseCategories
   }
   return categoryStore.sortedActiveCategories
@@ -553,34 +609,29 @@ const availableCategories = computed(() => {
 const filteredTransactions = computed(() => {
   let transactions = [...transactionStore.transactions]
 
-  // Filter by search
   if (filters.value.search) {
     const query = filters.value.search.toLowerCase()
-    transactions = transactions.filter(t =>
+    transactions = transactions.filter((t) =>
       t.category.toLowerCase().includes(query) ||
       t.bank.toLowerCase().includes(query) ||
       t.comment?.toLowerCase().includes(query)
     )
   }
 
-  // Filter by budget
   if (filters.value.budgetId) {
-    transactions = transactions.filter(t => t.budget_id === filters.value.budgetId)
+    transactions = transactions.filter((t) => t.budget_id === filters.value.budgetId)
   }
 
-  // Filter by type
   if (filters.value.type !== 'all') {
-    transactions = transactions.filter(t => t.type === filters.value.type)
+    transactions = transactions.filter((t) => t.type === filters.value.type)
   }
 
-  // Filter by category
   if (filters.value.category) {
-    transactions = transactions.filter(t => t.category === filters.value.category)
+    transactions = transactions.filter((t) => t.category === filters.value.category)
   }
 
-  // Filter by status
   if (filters.value.status !== 'all') {
-    transactions = transactions.filter(t => 
+    transactions = transactions.filter((t) =>
       filters.value.status === 'charged' ? t.is_charged : !t.is_charged
     )
   }
@@ -588,21 +639,47 @@ const filteredTransactions = computed(() => {
   return transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
 })
 
-const totalIncome = computed(() => 
+const totalIncome = computed(() =>
   filteredTransactions.value
-    .filter(t => t.type === 'income' && t.category !== 'Transferido Cuentas')
+    .filter((t) => t.type === 'income' && t.category !== 'Transferido Cuentas')
     .reduce((sum, t) => sum + t.amount, 0)
 )
 
-const totalExpense = computed(() => 
+const totalExpense = computed(() =>
   filteredTransactions.value
-    .filter(t => t.type === 'expense' && t.category !== 'Transferido Cuentas')
+    .filter((t) => t.type === 'expense' && t.category !== 'Transferido Cuentas')
     .reduce((sum, t) => sum + t.amount, 0)
 )
 
 const balance = computed(() => totalIncome.value - totalExpense.value)
 
-// Lifecycle
+const chargedTransactionsCount = computed(() => {
+  return filteredTransactions.value.filter((transaction) => transaction.is_charged).length
+})
+
+const pendingTransactionsCount = computed(() => {
+  return filteredTransactions.value.filter((transaction) => !transaction.is_charged).length
+})
+
+const averageTransactionAmount = computed(() => {
+  if (!filteredTransactions.value.length) {
+    return formatCurrency(0)
+  }
+
+  const total = filteredTransactions.value.reduce((sum, transaction) => sum + (transaction.amount || 0), 0)
+  return formatCurrency(total / filteredTransactions.value.length)
+})
+
+const activeFilterCount = computed(() => {
+  return [
+    Boolean(filters.value.search),
+    Boolean(filters.value.budgetId),
+    filters.value.type !== 'all',
+    Boolean(filters.value.category),
+    filters.value.status !== 'all'
+  ].filter(Boolean).length
+})
+
 onMounted(async () => {
   await Promise.all([
     transactionStore.fetchTransactions(),
@@ -611,7 +688,6 @@ onMounted(async () => {
   ])
 })
 
-// Methods
 const clearFilters = () => {
   filters.value = {
     search: '',
@@ -639,8 +715,7 @@ const closeDialog = () => {
 }
 
 const saveTransaction = async () => {
-  if (!transactionForm.value.budget_id || !transactionForm.value.amount || 
-      !transactionForm.value.category || !transactionForm.value.bank) {
+  if (!transactionForm.value.budget_id || !transactionForm.value.amount || !transactionForm.value.category || !transactionForm.value.bank) {
     toast.add({
       severity: 'warn',
       summary: 'Campos requeridos',
@@ -757,95 +832,229 @@ const deleteTransaction = async () => {
 <style scoped>
 .transaction-manager {
   width: 100%;
-  animation: fadeIn 0.5s ease-in;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: fadeIn 0.45s ease-in;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Header */
-.page-header {
-  margin-bottom: 2rem;
+.hero-panel,
+.insight-item,
+.stat-card,
+.filters-card,
+.table-card {
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--shadow-sm);
 }
 
-.header-content {
+.hero-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(300px, 1fr);
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border-radius: 32px;
+  background: var(--hero-gradient);
+  overflow: hidden;
+  position: relative;
+}
+
+.hero-panel::after {
+  content: '';
+  position: absolute;
+  right: -5rem;
+  bottom: -5rem;
+  width: 16rem;
+  height: 16rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(217, 119, 6, 0.14) 0%, rgba(217, 119, 6, 0) 70%);
+}
+
+.hero-copy,
+.hero-metrics-grid {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-copy {
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 2rem;
-  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.header-text {
-  flex: 1;
+.hero-kicker,
+.section-kicker {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--primary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .page-title {
-  font-size: 2.25rem;
-  font-weight: 700;
-  color: var(--text-color);
-  margin-bottom: 0.5rem;
-  letter-spacing: -0.02em;
+  max-width: 13ch;
+  font-size: clamp(2.2rem, 3.8vw, 3.4rem);
+  font-weight: 800;
+  color: var(--heading-color);
+  letter-spacing: -0.04em;
 }
 
 .page-subtitle {
-  font-size: 1rem;
+  max-width: 62ch;
   color: var(--text-color-secondary);
-  font-weight: 400;
+  line-height: 1.7;
 }
 
-/* Stats Grid */
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.hero-primary-action {
+  box-shadow: 0 18px 30px rgba(15, 139, 111, 0.2);
+}
+
+.hero-tag-card,
+.hero-metric-tile,
+.table-summary-pill {
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(12px);
+}
+
+.hero-tag-card,
+.table-summary-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.85rem 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(124, 97, 61, 0.12);
+}
+
+.hero-tag-card span,
+.table-summary-pill span {
+  color: var(--text-color-secondary);
+  font-size: 0.82rem;
+}
+
+.hero-tag-card strong,
+.table-summary-pill strong {
+  color: var(--heading-color);
+  font-size: 1rem;
+}
+
+.hero-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.hero-metric-tile {
+  padding: 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(124, 97, 61, 0.12);
+}
+
+.hero-metric-tile span {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--text-color-secondary);
+  font-size: 0.82rem;
+}
+
+.hero-metric-tile strong {
+  color: var(--heading-color);
+  font-size: 1.2rem;
+}
+
+.hero-metric-tile strong.negative {
+  color: var(--danger-color);
+}
+
+.insight-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.insight-item {
+  padding: 1.1rem 1.2rem;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--surface-card) 82%, transparent);
+}
+
+.insight-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--text-color-secondary);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.insight-item strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--heading-color);
+  font-size: 1.35rem;
+}
+
+.insight-item p {
+  color: var(--text-color-secondary);
+  line-height: 1.55;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: 1rem;
 }
 
 .stat-card {
-  background: var(--surface-card);
-  border-radius: 16px;
-  padding: 1.75rem;
-  border: 1px solid var(--surface-border);
   display: flex;
   align-items: flex-start;
-  gap: 1.25rem;
-  transition: all 0.3s ease;
+  gap: 1rem;
+  padding: 1.35rem;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--surface-card) 86%, transparent);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(15, 139, 111, 0.18);
 }
 
 .stat-icon {
   width: 56px;
   height: 56px;
-  border-radius: 12px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
-  flex-shrink: 0;
   color: white;
-}
-
-.stat-card-1 .stat-icon {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.stat-card-2 .stat-icon {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-}
-
-.stat-card-3 .stat-icon {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-}
-
-.stat-card-4 .stat-icon {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  font-size: 1.5rem;
+  background: linear-gradient(145deg, #0f8b6f 0%, #d97706 100%);
+  box-shadow: 0 12px 24px rgba(15, 139, 111, 0.2);
 }
 
 .stat-content {
@@ -853,34 +1062,44 @@ const deleteTransaction = async () => {
 }
 
 .stat-value {
-  font-size: 2rem;
+  color: var(--heading-color);
+  font-size: 1.8rem;
   font-weight: 700;
-  color: var(--text-color);
-  margin-bottom: 0.25rem;
   line-height: 1;
+  margin-bottom: 0.2rem;
 }
 
 .stat-value.negative {
-  color: #ef4444;
+  color: var(--danger-color);
 }
 
 .stat-label {
-  font-size: 0.875rem;
   color: var(--text-color-secondary);
-  font-weight: 500;
-  margin: 0;
+  font-size: 0.875rem;
 }
 
-/* Filters Card */
-.filters-card {
-  border: 1px solid var(--surface-border);
-  border-radius: 16px;
-  margin-bottom: 2rem;
+.filters-card,
+.table-card {
+  border-radius: 28px;
+  background: color-mix(in srgb, var(--surface-card) 84%, transparent);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.panel-header h2 {
+  margin-top: 0.6rem;
+  font-size: 1.2rem;
 }
 
 .filters-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: 1.4fr repeat(4, minmax(0, 1fr));
   gap: 1rem;
   align-items: end;
 }
@@ -898,13 +1117,7 @@ const deleteTransaction = async () => {
 }
 
 .clear-button {
-  width: 100%;
-}
-
-/* Table Card */
-.table-card {
-  border: 1px solid var(--surface-border);
-  border-radius: 16px;
+  align-self: flex-start;
 }
 
 .empty-state {
@@ -919,22 +1132,23 @@ const deleteTransaction = async () => {
   margin-bottom: 1rem;
 }
 
-.date-text {
+.date-text,
+.bank-text {
   color: var(--text-color-secondary);
   font-size: 0.875rem;
 }
 
 .amount-text {
-  font-weight: 600;
+  font-weight: 700;
   font-size: 1rem;
 }
 
 .text-green {
-  color: #10b981 !important;
+  color: var(--success-color) !important;
 }
 
 .text-red {
-  color: #ef4444 !important;
+  color: var(--danger-color) !important;
 }
 
 .action-buttons {
@@ -942,7 +1156,6 @@ const deleteTransaction = async () => {
   gap: 0.25rem;
 }
 
-/* Dialog */
 .dialog-content {
   padding: 1rem 0;
   display: flex;
@@ -994,13 +1207,12 @@ const deleteTransaction = async () => {
 }
 
 .transaction-details {
-  padding: 0.75rem;
-  background: var(--surface-hover);
-  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  background: color-mix(in srgb, var(--surface-hover) 84%, transparent);
+  border-radius: 14px;
   margin-top: 0.5rem;
 }
 
-/* Category Options Styling */
 .category-option {
   display: flex;
   align-items: center;
@@ -1018,27 +1230,52 @@ const deleteTransaction = async () => {
   font-weight: 600;
 }
 
-/* Responsive */
+@media (max-width: 1100px) {
+  .hero-panel,
+  .insight-strip,
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
-  .page-title {
-    font-size: 1.75rem;
+  .transaction-manager {
+    gap: 1rem;
   }
 
-  .header-content {
+  .hero-panel,
+  .filters-card,
+  .table-card {
+    border-radius: 24px;
+  }
+
+  .hero-panel {
+    padding: 1.1rem;
+  }
+
+  .page-title {
+    font-size: 2rem;
+  }
+
+  .stats-grid,
+  .hero-metrics-grid,
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions,
+  .panel-header {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .stats-grid {
-    grid-template-columns: 1fr;
+  .hero-primary-action,
+  .clear-button {
+    width: 100%;
   }
 
-  .filters-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
+  .button-group {
+    flex-direction: column;
   }
 }
 </style>

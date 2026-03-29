@@ -4,8 +4,16 @@
       <div class="logo-icon">
         <i class="pi pi-bolt"></i>
       </div>
-      <span class="logo-text">Wicked<span class="logo-accent">App</span></span>
+      <div class="logo-copy">
+        <span class="logo-text">Wicked<span class="logo-accent">App</span></span>
+        <span class="logo-caption">Financial command center</span>
+      </div>
     </router-link>
+
+    <div class="topbar-context">
+      <span class="context-kicker">Workspace</span>
+      <strong>Control financiero en tiempo real</strong>
+    </div>
 
     <button class="p-link layout-menu-button layout-topbar-button" @click="onMenuToggle">
       <i class="pi pi-bars"></i>
@@ -18,12 +26,12 @@
     <div class="layout-topbar-menu" :class="topbarMenuClasses">
       <button @click="toggleDarkMode" class="p-link layout-topbar-button theme-toggle">
         <i :class="['pi', isDarkTheme ? 'pi-sun' : 'pi-moon']"></i>
-        <span>{{ isDarkTheme ? 'Light' : 'Dark' }}</span>
+        <span>{{ isDarkTheme ? 'Claro' : 'Oscuro' }}</span>
       </button>
       
       <button class="p-link layout-topbar-button">
         <i class="pi pi-bell"></i>
-        <span>Notifications</span>
+        <span>Alertas</span>
         <span class="notification-badge">3</span>
       </button>
       
@@ -31,7 +39,10 @@
         <div class="profile-avatar">
           <i class="pi pi-user"></i>
         </div>
-        <span>Profile</span>
+        <div class="profile-meta">
+          <span>Workspace</span>
+          <small>Operativo</small>
+        </div>
       </button>
     </div>
   </div>
@@ -61,11 +72,13 @@ const showProfileSidebar = () => {
   top: 0;
   width: 100%;
   padding: 0 2rem;
-  background: var(--surface-card);
-  transition: left 0.2s;
+  background: color-mix(in srgb, var(--surface-card) 84%, transparent);
+  backdrop-filter: blur(18px);
+  transition: left 0.2s, background-color 0.2s ease;
   display: flex;
   align-items: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+  gap: 1rem;
+  box-shadow: 0 16px 40px rgba(30, 41, 59, 0.08);
   border-bottom: 1px solid var(--surface-border);
 }
 
@@ -74,9 +87,7 @@ const showProfileSidebar = () => {
   align-items: center;
   gap: 0.75rem;
   color: var(--text-color);
-  font-size: 1.5rem;
-  font-weight: 800;
-  width: 300px;
+  width: 320px;
   text-decoration: none;
   transition: all 0.3s ease;
 }
@@ -86,16 +97,21 @@ const showProfileSidebar = () => {
 }
 
 .logo-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #0f8b6f 0%, #126f75 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-size: 1.25rem;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 14px 24px rgba(15, 139, 111, 0.26);
+}
+
+.logo-copy {
+  display: flex;
+  flex-direction: column;
 }
 
 .logo-text {
@@ -105,12 +121,42 @@ const showProfileSidebar = () => {
   color: var(--text-color);
 }
 
+.logo-caption {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-color-secondary);
+}
+
 .logo-accent {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(145deg, #d97706 0%, #0f8b6f 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-weight: 800;
+}
+
+.topbar-context {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-section) 76%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.context-kicker {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-color-secondary);
+}
+
+.topbar-context strong {
+  font-size: 0.9rem;
+  color: var(--text-color);
 }
 
 .layout-topbar-button {
@@ -119,12 +165,12 @@ const showProfileSidebar = () => {
   align-items: center;
   position: relative;
   color: var(--text-color-secondary);
-  border-radius: 10px;
+  border-radius: 14px;
   height: 2.75rem;
   padding: 0 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
   gap: 0.5rem;
   font-weight: 600;
@@ -133,7 +179,8 @@ const showProfileSidebar = () => {
 
 .layout-topbar-button:hover {
   color: var(--text-color);
-  background-color: var(--surface-hover);
+  background-color: color-mix(in srgb, var(--surface-hover) 82%, transparent);
+  border-color: var(--surface-border);
   transform: translateY(-1px);
 }
 
@@ -154,7 +201,7 @@ const showProfileSidebar = () => {
   position: absolute;
   top: 0.25rem;
   right: 0.25rem;
-  background: #ef4444;
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
   color: white;
   font-size: 0.625rem;
   font-weight: 700;
@@ -169,13 +216,14 @@ const showProfileSidebar = () => {
 
 .profile-button {
   gap: 0.625rem;
+  min-width: 140px;
 }
 
 .profile-avatar {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0f8b6f 0%, #0c6b5a 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -183,8 +231,19 @@ const showProfileSidebar = () => {
   font-size: 0.875rem;
 }
 
+.profile-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+}
+
+.profile-meta small {
+  color: var(--text-color-secondary);
+}
+
 .layout-menu-button {
-  margin-left: 2rem;
+  margin-left: auto;
 }
 
 .layout-topbar-menu-button {
@@ -208,13 +267,15 @@ const showProfileSidebar = () => {
 @media (max-width: 991px) {
   .layout-topbar {
     justify-content: space-between;
+    padding: 0 1rem;
   }
 
   .layout-topbar-logo {
     width: auto;
   }
 
-  .logo-text {
+  .logo-copy,
+  .topbar-context {
     display: none;
   }
 
@@ -229,11 +290,13 @@ const showProfileSidebar = () => {
   .layout-topbar-menu {
     position: absolute;
     flex-direction: column;
-    background-color: var(--surface-overlay);
+    background-color: color-mix(in srgb, var(--surface-overlay) 92%, transparent);
+    border: 1px solid var(--surface-border);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    border-radius: 12px;
+    backdrop-filter: blur(18px);
+    border-radius: 18px;
     padding: 1rem;
-    right: 2rem;
+    right: 1rem;
     top: 5.5rem;
     min-width: 200px;
     display: none;

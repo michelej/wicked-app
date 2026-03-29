@@ -2,13 +2,16 @@
   <li :class="containerClass">
     <div v-if="root && item.visible !== false" class="layout-menuitem-root-text">{{ item.label }}</div>
     <a
-      v-if="(!item.to || item.items) && item.visible !== false"
+      v-if="!root && (!item.to || item.items) && item.visible !== false"
       :href="item.url"
       @click="itemClick($event, item)"
       :class="linkClass"
       :target="item.target"
       tabindex="0"
-    >      
+    >
+      <i v-if="item.icon" :class="item.icon" class="layout-menuitem-icon"></i>
+      <span class="layout-menuitem-text">{{ item.label }}</span>
+      <i class="pi pi-fw pi-angle-down layout-submenu-toggler" v-if="item.items"></i>
     </a>
     <router-link
       v-if="item.to && !item.items && item.visible !== false"
@@ -122,13 +125,16 @@ const isExactActive = computed(() => {
 .layout-menuitem-root-text {
   text-transform: uppercase;
   color: var(--text-color-secondary);
-  font-weight: 600;
-  margin: 0.75rem 0 0.5rem 0;
-  font-size: 0.857rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
 }
 
 .layout-menuitem-icon {
-  margin-right: 0.5rem;
+  margin-right: 0.75rem;
+  width: 1.1rem;
+  text-align: center;
 }
 
 .layout-menuitem-text {
@@ -158,19 +164,38 @@ const isExactActive = computed(() => {
   outline: 0 none;
   color: var(--text-color);
   cursor: pointer;
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  transition: background-color 0.2s, box-shadow 0.2s;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  transition: background-color 0.2s, box-shadow 0.2s, transform 0.2s, border-color 0.2s;
   text-decoration: none;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .layout-submenu a:hover {
-  background-color: var(--surface-hover);
+  background-color: color-mix(in srgb, var(--surface-hover) 74%, transparent);
+  border-color: var(--surface-border);
+  transform: translateX(2px);
 }
 
 .layout-submenu a.router-link-active {
   font-weight: 700;
   color: var(--primary-color);
+  background: linear-gradient(135deg, rgba(15, 139, 111, 0.12) 0%, rgba(217, 119, 6, 0.08) 100%);
+  border-color: rgba(15, 139, 111, 0.18);
+  box-shadow: 0 14px 24px rgba(15, 139, 111, 0.1);
+}
+
+.layout-submenu a.router-link-active::before {
+  content: '';
+  position: absolute;
+  left: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: calc(100% - 1rem);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #0f8b6f 0%, #d97706 100%);
 }
 
 .layout-submenu-enter-from,

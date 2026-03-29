@@ -10,7 +10,6 @@ El backend está completamente implementado con todas las funcionalidades requer
 - ✅ **Category** - Categorías configurables (Agua, Luz, Netflix, etc.)
 - ✅ **Budget** - Presupuestos mensuales con fechas flexibles
 - ✅ **Transaction** - Transacciones de ingresos y egresos
-- ✅ **BudgetTemplate** - Plantillas de presupuesto reutilizables
 - ✅ **RecurringExpense** - Gastos recurrentes anuales
 
 #### Endpoints API Implementados
@@ -41,13 +40,6 @@ El backend está completamente implementado con todas las funcionalidades requer
 - `PATCH /api/transactions/{id}/charge` - Marcar como cobrado/pagado
 - `DELETE /api/transactions/{id}` - Eliminar transacción
 
-**Plantillas** (`/api/templates`)
-- `GET /api/templates` - Listar plantillas
-- `GET /api/templates/{id}` - Obtener plantilla específica
-- `POST /api/templates` - Crear plantilla
-- `PUT /api/templates/{id}` - Actualizar plantilla
-- `DELETE /api/templates/{id}` - Eliminar plantilla
-
 **Gastos Recurrentes** (`/api/recurring-expenses`)
 - `GET /api/recurring-expenses` - Listar gastos recurrentes
 - `GET /api/recurring-expenses/active` - Solo gastos activos
@@ -70,7 +62,6 @@ El backend está completamente implementado con todas las funcionalidades requer
 - ✅ `categoryService.js` - Servicio para categorías
 - ✅ `budgetService.js` - Servicio para presupuestos
 - ✅ `transactionService.js` - Servicio para transacciones
-- ✅ `templateService.js` - Servicio para plantillas
 - ✅ `recurringService.js` - Servicio para gastos recurrentes
 - ✅ `dashboardService.js` - Servicio para dashboard
 
@@ -78,7 +69,6 @@ El backend está completamente implementado con todas las funcionalidades requer
 - ✅ `categories.js` - Store de categorías
 - ✅ `budgets.js` - Store de presupuestos
 - ✅ `transactions.js` - Store de transacciones
-- ✅ `templates.js` - Store de plantillas
 - ✅ `recurring.js` - Store de gastos recurrentes
 - ✅ `dashboard.js` - Store de dashboard
 
@@ -183,7 +173,6 @@ Aunque el backend está completo, las vistas del frontend necesitan ser implemen
 
 #### 4. **Crear/Editar Presupuesto** (`/src/views/BudgetForm.vue`)
 - Formulario con nombre, fecha inicio, fecha fin
-- Opción para crear desde plantilla
 - **Selector de gastos recurrentes a incluir**
 - Vista previa del presupuesto antes de crearlo
 
@@ -244,10 +233,9 @@ const routes = [
       { path: 'transactions', name: 'transactions', component: () => import('@/views/TransactionManager.vue') },
       { path: 'recurring', name: 'recurring', component: () => import('@/views/RecurringManager.vue') },
       { path: 'categories', name: 'categories', component: () => import('@/views/CategoryManager.vue') },
-      { path: 'templates', name: 'templates', component: () => import('@/views/TemplateManager.vue') }
-    ]
-  }
-]
+       ]
+     }
+   ]
 ```
 
 ### Actualizar Menú de Navegación
@@ -259,7 +247,6 @@ const menuItems = [
   { label: 'Presupuestos', icon: 'pi-wallet', to: '/budgets' },
   { label: 'Transacciones', icon: 'pi-money-bill', to: '/transactions' },
   { label: 'Gastos Recurrentes', icon: 'pi-sync', to: '/recurring' },
-  { label: 'Plantillas', icon: 'pi-clone', to: '/templates' },
   { label: 'Categorías', icon: 'pi-tags', to: '/categories' }
 ]
 ```
@@ -289,8 +276,7 @@ const menuItems = [
   name: "Marzo 2026",
   start_date: "2026-03-01T00:00:00",
   end_date: "2026-03-31T23:59:59",
-  status: "active" | "closed" | "draft",
-  created_from_template: "template_id" // opcional
+  status: "active" | "closed" | "draft"
 }
 ```
 
@@ -317,7 +303,6 @@ const menuItems = [
 2. Completa el formulario:
    - Nombre (ej: "Marzo 2026")
    - Fecha inicio y fin
-   - Opcionalmente seleccionar plantilla
 3. Sistema muestra **selector de gastos recurrentes**
 4. Usuario marca los gastos que quiere incluir
 5. Usuario confirma creación
