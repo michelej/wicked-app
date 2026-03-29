@@ -233,7 +233,7 @@ db.categories.insertMany([
 // Create indexes
 db.budgets.createIndex({ "start_date": 1 });
 db.budgets.createIndex({ "status": 1 });
-db.transactions.createIndex({ "budget_ids": 1 });
+db.transactions.createIndex({ "budget_id": 1, "timestamp": -1 });
 db.transactions.createIndex({ "timestamp": -1 });
 db.transactions.createIndex({ "category": 1 });
 db.transactions.createIndex({ "type": 1 });

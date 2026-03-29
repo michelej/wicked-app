@@ -1121,7 +1121,7 @@ onMounted(async () => {
     // Load budget, summary, transactions, categories, and recurring expenses
     await Promise.all([
       loadBudget(),
-      transactionStore.fetchTransactions(),
+      transactionStore.fetchTransactionsByBudget(budgetId.value),
       categoryStore.fetchCategories(),
       recurringStore.fetchRecurringExpenses()
     ])

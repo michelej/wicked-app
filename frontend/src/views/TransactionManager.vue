@@ -497,7 +497,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useTransactionStore } from '@/stores/transactions'
 import { useBudgetStore } from '@/stores/budgets'
 import { useCategoryStore } from '@/stores/categories'
@@ -606,6 +606,32 @@ const availableCategories = computed(() => {
   return categoryStore.sortedActiveCategories
 })
 
+const buildTransactionParams = () => {
+  const params = {}
+
+  if (filters.value.budgetId) {
+    params.budget_id = filters.value.budgetId
+  }
+
+  if (filters.value.type !== 'all') {
+    params.type_filter = filters.value.type
+  }
+
+  if (filters.value.category) {
+    params.category = filters.value.category
+  }
+
+  if (filters.value.status !== 'all') {
+    params.is_charged = filters.value.status === 'charged'
+  }
+
+  return params
+}
+
+const loadTransactions = async () => {
+  await transactionStore.fetchTransactions(buildTransactionParams())
+}
+
 const filteredTransactions = computed(() => {
   let transactions = [...transactionStore.transactions]
 
@@ -615,24 +641,6 @@ const filteredTransactions = computed(() => {
       t.category.toLowerCase().includes(query) ||
       t.bank.toLowerCase().includes(query) ||
       t.comment?.toLowerCase().includes(query)
-    )
-  }
-
-  if (filters.value.budgetId) {
-    transactions = transactions.filter((t) => t.budget_id === filters.value.budgetId)
-  }
-
-  if (filters.value.type !== 'all') {
-    transactions = transactions.filter((t) => t.type === filters.value.type)
-  }
-
-  if (filters.value.category) {
-    transactions = transactions.filter((t) => t.category === filters.value.category)
-  }
-
-  if (filters.value.status !== 'all') {
-    transactions = transactions.filter((t) =>
-      filters.value.status === 'charged' ? t.is_charged : !t.is_charged
     )
   }
 
@@ -682,11 +690,23 @@ const activeFilterCount = computed(() => {
 
 onMounted(async () => {
   await Promise.all([
-    transactionStore.fetchTransactions(),
+    loadTransactions(),
     budgetStore.fetchBudgets(),
     categoryStore.fetchCategories()
   ])
 })
+
+watch(
+  [
+    () => filters.value.budgetId,
+    () => filters.value.type,
+    () => filters.value.category,
+    () => filters.value.status
+  ],
+  () => {
+    loadTransactions()
+  }
+)
 
 const clearFilters = () => {
   filters.value = {
@@ -757,6 +777,7 @@ const saveTransaction = async () => {
     }
 
     closeDialog()
+    await loadTransactions()
   } catch (err) {
     toast.add({
       severity: 'error',
@@ -792,6 +813,7 @@ const markAsCharged = async (transaction) => {
       detail: 'La transacción se marcó como cobrada',
       life: 3000
     })
+    await loadTransactions()
   } catch (err) {
     toast.add({
       severity: 'error',
@@ -818,6 +840,7 @@ const deleteTransaction = async () => {
     })
     showDeleteDialog.value = false
     transactionToDelete.value = null
+    await loadTransactions()
   } catch (err) {
     toast.add({
       severity: 'error',

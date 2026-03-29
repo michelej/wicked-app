@@ -201,6 +201,7 @@
             <Button
               label="Ver Detalles"
               icon="pi pi-eye"
+              size="small"
               class="budget-detail-button"
               @click.stop="viewBudget(budget._id)"
             />
@@ -209,6 +210,7 @@
               <Button
                 label="Editar"
                 icon="pi pi-pencil"
+                size="small"
                 severity="secondary"
                 outlined
                 @click.stop="editBudget(budget)"
@@ -217,6 +219,7 @@
               <Button
                 label="Categorías"
                 icon="pi pi-tags"
+                size="small"
                 severity="info"
                 outlined
                 @click.stop="editBudget(budget)"
@@ -226,6 +229,7 @@
                 v-if="budget.status === 'active' || budget.status === 'closed'"
                 :label="budget.status === 'active' ? 'Cerrar' : 'Abrir'"
                 :icon="budget.status === 'active' ? 'pi pi-lock' : 'pi pi-lock-open'"
+                size="small"
                 :severity="budget.status === 'active' ? 'warning' : 'success'"
                 outlined
                 @click.stop="toggleBudgetStatus(budget)"
@@ -233,6 +237,7 @@
               <Button
                 label="Eliminar"
                 icon="pi pi-trash"
+                size="small"
                 severity="danger"
                 text
                 @click.stop="confirmDeleteBudget(budget)"
@@ -497,10 +502,12 @@ const filteredBudgets = computed(() => {
       ? budgetStore.closedBudgets
       : budgetStore.draftBudgets
 
-  return budgets.map((budget) => ({
-    ...budget,
-    summary: budgetStore.budgetSummaries[budget._id]
-  }))
+  return budgets
+    .map((budget) => ({
+      ...budget,
+      summary: budgetStore.budgetSummaries[budget._id]
+    }))
+    .sort((a, b) => new Date(b.start_date) - new Date(a.start_date))
 })
 
 const totalPlanned = computed(() => {
@@ -786,9 +793,9 @@ const deleteBudget = async () => {
 .hero-panel {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(300px, 1fr);
-  gap: 1.25rem;
-  padding: 1.5rem;
-  border-radius: 32px;
+  gap: 1rem;
+  padding: 1.15rem 1.25rem;
+  border-radius: 28px;
   background: var(--hero-gradient);
   overflow: hidden;
   position: relative;
@@ -815,14 +822,14 @@ const deleteBudget = async () => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.7rem;
 }
 
 .hero-kicker,
 .section-kicker {
   display: inline-flex;
   width: fit-content;
-  padding: 0.45rem 0.85rem;
+  padding: 0.35rem 0.75rem;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.68);
   color: var(--primary-color);
@@ -834,7 +841,8 @@ const deleteBudget = async () => {
 
 .page-title {
   max-width: 12ch;
-  font-size: clamp(2.2rem, 3.8vw, 3.4rem);
+  margin: 0;
+  font-size: clamp(1.85rem, 3.2vw, 2.8rem);
   font-weight: 800;
   color: var(--heading-color);
   letter-spacing: -0.04em;
@@ -842,15 +850,16 @@ const deleteBudget = async () => {
 
 .page-subtitle {
   max-width: 60ch;
+  margin: 0;
   color: var(--text-color-secondary);
-  line-height: 1.7;
-  font-size: 1rem;
+  line-height: 1.5;
+  font-size: 0.96rem;
 }
 
 .hero-actions {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.65rem;
   flex-wrap: wrap;
 }
 
@@ -872,8 +881,8 @@ const deleteBudget = async () => {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  padding: 0.85rem 1rem;
-  border-radius: 20px;
+  padding: 0.65rem 0.85rem;
+  border-radius: 16px;
   border: 1px solid rgba(124, 97, 61, 0.12);
 }
 
@@ -892,25 +901,25 @@ const deleteBudget = async () => {
 .hero-metrics-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.85rem;
+  gap: 0.65rem;
 }
 
 .hero-metric-tile {
-  padding: 1rem;
-  border-radius: 20px;
+  padding: 0.8rem 0.9rem;
+  border-radius: 16px;
   border: 1px solid rgba(124, 97, 61, 0.12);
 }
 
 .hero-metric-tile span {
   display: block;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.25rem;
   color: var(--text-color-secondary);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
 }
 
 .hero-metric-tile strong {
   color: var(--heading-color);
-  font-size: 1.2rem;
+  font-size: 1.05rem;
 }
 
 .hero-metric-tile strong.negative {
@@ -994,12 +1003,12 @@ const deleteBudget = async () => {
 
 .budgets-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
 }
 
 .budget-item {
-  border-radius: 28px;
+  border-radius: 24px;
   overflow: hidden;
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
@@ -1012,12 +1021,12 @@ const deleteBudget = async () => {
 
 .budget-item :deep(.p-card-content) {
   flex: 1;
-  padding: 1rem 1.5rem 1.5rem;
+  padding: 0.85rem 1.25rem 1.1rem;
 }
 
 .budget-item :deep(.p-card-footer) {
   margin-top: auto;
-  padding: 1.1rem 1.5rem 1.5rem;
+  padding: 0.9rem 1.25rem 1.2rem;
   border-top: 1px solid rgba(124, 97, 61, 0.08);
 }
 
@@ -1030,21 +1039,21 @@ const deleteBudget = async () => {
 .budget-header {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.85rem;
   align-items: flex-start;
-  padding: 1.5rem 1.5rem 0.25rem;
+  padding: 1.2rem 1.25rem 0.15rem;
 }
 
 .budget-heading {
   display: flex;
-  gap: 1rem;
+  gap: 0.85rem;
   align-items: flex-start;
 }
 
 .budget-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1064,7 +1073,7 @@ const deleteBudget = async () => {
 
 .budget-info h3 {
   margin: 0 0 0.45rem;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   color: var(--heading-color);
 }
 
@@ -1112,9 +1121,9 @@ const deleteBudget = async () => {
 }
 
 .budget-balance-panel {
-  min-width: 160px;
-  padding: 1rem;
-  border-radius: 22px;
+  min-width: 145px;
+  padding: 0.85rem 0.9rem;
+  border-radius: 18px;
   background: color-mix(in srgb, var(--surface-ground) 72%, transparent);
   border: 1px solid rgba(124, 97, 61, 0.1);
 }
@@ -1128,36 +1137,39 @@ const deleteBudget = async () => {
 
 .budget-balance-panel strong {
   display: block;
-  font-size: 1.45rem;
+  font-size: 1.2rem;
   letter-spacing: -0.03em;
   color: var(--heading-color);
 }
 
 .budget-balance-panel small {
-  display: block;
+  display: -webkit-box;
   margin-top: 0.4rem;
   color: var(--text-color-secondary);
-  line-height: 1.5;
+  line-height: 1.35;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .budget-summary {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.8rem;
 }
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.65rem;
 }
 
 .summary-item {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding: 1rem;
-  border-radius: 20px;
+  gap: 0.25rem;
+  padding: 0.8rem 0.85rem;
+  border-radius: 16px;
   border: 1px solid rgba(124, 97, 61, 0.08);
 }
 
@@ -1170,17 +1182,17 @@ const deleteBudget = async () => {
   align-items: center;
   gap: 0.35rem;
   color: var(--text-color-secondary);
-  font-size: 0.86rem;
+  font-size: 0.8rem;
 }
 
 .summary-value {
   color: var(--heading-color);
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-weight: 700;
 }
 
 .empty-plan-item .summary-value {
-  font-size: 1rem;
+  font-size: 0.92rem;
 }
 
 .text-green {
@@ -1194,7 +1206,7 @@ const deleteBudget = async () => {
 .budget-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.65rem;
 }
 
 .budget-detail-button {
@@ -1204,12 +1216,18 @@ const deleteBudget = async () => {
 
 .budget-actions-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.55rem;
 }
 
 .budget-actions-grid :deep(.p-button) {
   justify-content: center;
+}
+
+@media (max-width: 980px) {
+  .budgets-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 .dialog-content {

@@ -311,6 +311,7 @@ class BudgetService:
             total_planned = Decimal(0)
             total_spent = Decimal(0)
             categories_summary = {}
+            latest_start_date = max((budget.start_date for budget in month_budgets), default=datetime.min)
             
             # Get all categories to build parent-child relationship map
             category_to_parent = {}
@@ -386,15 +387,17 @@ class BudgetService:
                     "transactions": data["transactions"]
                 }
             
-            summaries.append(MonthlyBudgetSummary(
-                budget_month=month,
-                total_planned=total_planned,
-                total_spent=total_spent,
-                budget_count=len(month_budgets),
-                categories_summary=converted_categories
+            summaries.append((
+                latest_start_date,
+                MonthlyBudgetSummary(
+                    budget_month=month,
+                    total_planned=total_planned,
+                    total_spent=total_spent,
+                    budget_count=len(month_budgets),
+                    categories_summary=converted_categories
+                )
             ))
         
-        # Sort by month (assuming format "Month-YYYY")
-        summaries.sort(key=lambda x: x.budget_month, reverse=True)
+        summaries.sort(key=lambda x: x[0], reverse=True)
         
-        return summaries
+        return [summary for _, summary in summaries]

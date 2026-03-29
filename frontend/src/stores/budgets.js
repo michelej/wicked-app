@@ -11,6 +11,10 @@ export const useBudgetStore = defineStore('budgets', () => {
   const loading = ref(false)
   const error = ref(null)
 
+  const sortBudgetsByStartDate = (items = []) => {
+    return [...items].sort((a, b) => new Date(b.start_date) - new Date(a.start_date))
+  }
+
   // Getters
   const activeBudgets = computed(() => 
     budgets.value.filter(b => b.status === 'active')
@@ -30,8 +34,8 @@ export const useBudgetStore = defineStore('budgets', () => {
     error.value = null
     try {
       const response = await budgetService.getBudgets(params)
-      budgets.value = response.data
-      return response.data
+      budgets.value = sortBudgetsByStartDate(response.data)
+      return budgets.value
     } catch (err) {
       error.value = err.response?.data?.detail || err.message
       throw err
@@ -45,7 +49,7 @@ export const useBudgetStore = defineStore('budgets', () => {
     error.value = null
     try {
       const response = await budgetService.getActiveBudgets()
-      return response.data
+      return sortBudgetsByStartDate(response.data)
     } catch (err) {
       error.value = err.response?.data?.detail || err.message
       throw err
@@ -90,7 +94,7 @@ export const useBudgetStore = defineStore('budgets', () => {
     error.value = null
     try {
       const response = await budgetService.createBudget(budget)
-      budgets.value.unshift(response.data)
+      budgets.value = sortBudgetsByStartDate([...budgets.value, response.data])
       return response.data
     } catch (err) {
       error.value = err.response?.data?.detail || err.message
@@ -109,6 +113,7 @@ export const useBudgetStore = defineStore('budgets', () => {
       if (index !== -1) {
         budgets.value[index] = response.data
       }
+      budgets.value = sortBudgetsByStartDate(budgets.value)
       if (currentBudget.value && currentBudget.value._id === id) {
         currentBudget.value = response.data
       }
