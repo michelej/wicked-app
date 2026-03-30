@@ -206,6 +206,7 @@ import { useImportedTransactionStore } from '@/stores/importedTransactions'
 import { useBudgetStore } from '@/stores/budgets'
 import { useCategoryStore } from '@/stores/categories'
 import { useFormatters } from '@/composables/useFormatters'
+import { BUDGET_BANK_OPTIONS, formatBudgetOptionLabel } from '@/constants/banks'
 
 const router = useRouter()
 const toast = useToast()
@@ -244,10 +245,7 @@ const bankOptions = [
   { label: 'ING Direct', value: 'ing_direct' }
 ]
 
-const processingBankOptions = [
-  { label: 'BBVA', value: 'BBVA' },
-  { label: 'ING Direct', value: 'ING Direct' }
-]
+const processingBankOptions = BUDGET_BANK_OPTIONS
 
 const paymentMethodOptions = [
   { label: 'Debito', value: 'debit' },
@@ -261,10 +259,14 @@ const transactionTypeOptions = [
 ]
 
 const budgetOptions = computed(() => {
-  return budgetStore.budgets.map((budget) => ({
-    label: budget.name,
-    value: budget._id
-  }))
+  const selectedBank = selectedItem.value ? bankLabel(selectedItem.value.source_bank) : null
+
+  return budgetStore.budgets
+    .filter((budget) => !selectedBank || !budget.bank || budget.bank === selectedBank)
+    .map((budget) => ({
+      label: formatBudgetOptionLabel(budget),
+      value: budget._id
+    }))
 })
 
 const availableCategories = computed(() => {

@@ -393,10 +393,21 @@
         <div class="form-row">
           <div class="form-field">
             <label for="bank">Banco *</label>
-            <InputText
+            <div v-if="isSelectedBudgetBankLocked" class="locked-bank-field" :style="selectedBudgetBankStyle">
+              <span class="locked-bank-logo">{{ selectedBudgetBankBrand.logoText }}</span>
+              <div class="locked-bank-copy">
+                <strong>{{ selectedBudgetForForm.bank }}</strong>
+                <small>El presupuesto seleccionado pertenece a este banco.</small>
+              </div>
+            </div>
+            <Select
+              v-else
               id="bank"
               v-model="transactionForm.bank"
-              placeholder="ej. BBVA"
+              :options="budgetBankOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Selecciona banco"
               class="w-full"
             />
           </div>
@@ -502,6 +513,7 @@ import { useTransactionStore } from '@/stores/transactions'
 import { useBudgetStore } from '@/stores/budgets'
 import { useCategoryStore } from '@/stores/categories'
 import { useFormatters } from '@/composables/useFormatters'
+import { BUDGET_BANK_OPTIONS, formatBudgetOptionLabel, getBankBrand } from '@/constants/banks'
 import { useToast } from 'primevue/usetoast'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -534,6 +546,7 @@ const showCreateDialog = ref(false)
 const showDeleteDialog = ref(false)
 const editingTransaction = ref(null)
 const transactionToDelete = ref(null)
+const budgetBankOptions = BUDGET_BANK_OPTIONS
 
 const filters = ref({
   search: '',
@@ -576,17 +589,32 @@ const paymentMethodOptions = [
 const budgetOptions = computed(() => [
   { label: 'Todos los presupuestos', value: null },
   ...budgetStore.budgets.map((b) => ({
-    label: b.name,
+    label: formatBudgetOptionLabel(b),
     value: b._id
   }))
 ])
 
 const activeBudgetOptions = computed(() =>
   budgetStore.activeBudgets.map((b) => ({
-    label: b.name,
+    label: formatBudgetOptionLabel(b),
     value: b._id
   }))
 )
+
+const selectedBudgetForForm = computed(() => {
+  return budgetStore.budgets.find((budget) => budget._id === transactionForm.value.budget_id) || null
+})
+
+const selectedBudgetBankBrand = computed(() => getBankBrand(selectedBudgetForForm.value?.bank))
+
+const selectedBudgetBankStyle = computed(() => ({
+  '--budget-bank-accent': selectedBudgetBankBrand.value.accent,
+  '--budget-bank-surface': selectedBudgetBankBrand.value.surface,
+  '--budget-bank-pill-bg': selectedBudgetBankBrand.value.pillBackground,
+  '--budget-bank-shadow': selectedBudgetBankBrand.value.shadow
+}))
+
+const isSelectedBudgetBankLocked = computed(() => Boolean(selectedBudgetForForm.value?.bank))
 
 const categoryOptions = computed(() => [
   { label: 'Todas las categorías', value: null },
@@ -705,6 +733,16 @@ watch(
   ],
   () => {
     loadTransactions()
+  }
+)
+
+watch(
+  () => transactionForm.value.budget_id,
+  (budgetId) => {
+    const selectedBudget = budgetStore.budgets.find((budget) => budget._id === budgetId)
+    if (selectedBudget?.bank) {
+      transactionForm.value.bank = selectedBudget.bank
+    }
   }
 )
 
@@ -1227,6 +1265,45 @@ const deleteTransaction = async () => {
 
 .w-full {
   width: 100%;
+}
+
+.locked-bank-field {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--budget-bank-accent) 18%, transparent);
+  background: var(--budget-bank-pill-bg);
+}
+
+.locked-bank-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.2rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 999px;
+  color: white;
+  background: var(--budget-bank-surface);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  box-shadow: 0 12px 20px var(--budget-bank-shadow);
+}
+
+.locked-bank-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.locked-bank-copy strong {
+  color: var(--text-color);
+}
+
+.locked-bank-copy small {
+  color: var(--text-color-secondary);
 }
 
 .transaction-details {

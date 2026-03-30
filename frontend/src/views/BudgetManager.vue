@@ -103,14 +103,19 @@
         v-for="budget in filteredBudgets"
         :key="budget._id"
         class="budget-item"
+        :style="getBudgetBankStyle(budget)"
       >
         <template #header>
           <div class="budget-header">
             <div class="budget-heading">
-              <div class="budget-avatar">{{ getBudgetInitial(budget) }}</div>
+              <div class="budget-avatar">{{ getBudgetBankBrand(budget).logoText }}</div>
 
               <div class="budget-info">
                 <div class="budget-meta-top">
+                  <span class="budget-bank-pill">
+                    <span class="budget-bank-dot"></span>
+                    {{ getBudgetBankBrand(budget).label }}
+                  </span>
                   <Tag
                     :value="formatBudgetStatus(budget.status).label"
                     :severity="formatBudgetStatus(budget.status).severity"
@@ -264,6 +269,26 @@
             placeholder="ej. Presupuesto Marzo 2026"
             class="w-full"
           />
+        </div>
+
+        <div class="form-field">
+          <label for="budgetBank">Banco *</label>
+          <Select
+            id="budgetBank"
+            v-model="budgetForm.bank"
+            :options="budgetBankOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Selecciona banco"
+            class="w-full"
+          >
+            <template #option="{ option }">
+              <div class="bank-option-row">
+                <span class="bank-option-logo">{{ option.shortLabel }}</span>
+                <span>{{ option.label }}</span>
+              </div>
+            </template>
+          </Select>
         </div>
 
         <div class="form-row">
@@ -447,6 +472,7 @@ import { useRouter } from 'vue-router'
 import { useBudgetStore } from '@/stores/budgets'
 import { useCategoryStore } from '@/stores/categories'
 import { useFormatters } from '@/composables/useFormatters'
+import { BUDGET_BANK_OPTIONS, getBankBrand } from '@/constants/banks'
 import { useToast } from 'primevue/usetoast'
 import ProgressSpinner from 'primevue/progressspinner'
 import Calendar from 'primevue/calendar'
@@ -459,6 +485,17 @@ const budgetStore = useBudgetStore()
 const categoryStore = useCategoryStore()
 const toast = useToast()
 const { formatCurrency, formatDate, formatBudgetStatus } = useFormatters()
+const budgetBankOptions = BUDGET_BANK_OPTIONS
+
+const defaultBudgetForm = () => ({
+  name: '',
+  bank: null,
+  start_date: null,
+  end_date: null,
+  budget_month: '',
+  budget_items: [],
+  status: 'active'
+})
 
 const normalizeIcon = (icon) => {
   if (!icon) return 'pi pi-tag'
@@ -480,14 +517,7 @@ const showDeleteDialog = ref(false)
 const editingBudget = ref(null)
 const budgetToDelete = ref(null)
 
-const budgetForm = ref({
-  name: '',
-  start_date: null,
-  end_date: null,
-  budget_month: '',
-  budget_items: [],
-  status: 'active'
-})
+const budgetForm = ref(defaultBudgetForm())
 
 const statusOptions = [
   { label: 'Activo', value: 'active' },
@@ -564,8 +594,20 @@ onMounted(async () => {
   }
 })
 
-const getBudgetInitial = (budget) => {
-  return budget.name?.trim()?.charAt(0)?.toUpperCase() || 'B'
+const getBudgetBankBrand = (budget) => getBankBrand(budget?.bank)
+
+const getBudgetBankStyle = (budget) => {
+  const brand = getBudgetBankBrand(budget)
+
+  return {
+    '--budget-bank-accent': brand.accent,
+    '--budget-bank-accent-soft': brand.accentSoft,
+    '--budget-bank-surface': brand.surface,
+    '--budget-bank-shadow': brand.shadow,
+    '--budget-bank-glow': brand.glow,
+    '--budget-bank-pill-bg': brand.pillBackground,
+    '--budget-bank-pill-color': brand.pillColor
+  }
 }
 
 const getBudgetHealth = (budget) => {
@@ -623,6 +665,7 @@ const editBudget = (budget) => {
   editingBudget.value = budget
   budgetForm.value = {
     name: budget.name,
+    bank: budget.bank || null,
     start_date: new Date(budget.start_date),
     end_date: new Date(budget.end_date),
     budget_month: budget.budget_month || '',
@@ -635,18 +678,11 @@ const editBudget = (budget) => {
 const closeDialog = () => {
   showCreateDialog.value = false
   editingBudget.value = null
-  budgetForm.value = {
-    name: '',
-    start_date: null,
-    end_date: null,
-    budget_month: '',
-    budget_items: [],
-    status: 'active'
-  }
+  budgetForm.value = defaultBudgetForm()
 }
 
 const saveBudget = async () => {
-  if (!budgetForm.value.name || !budgetForm.value.start_date || !budgetForm.value.end_date || !budgetForm.value.budget_month) {
+  if (!budgetForm.value.name || !budgetForm.value.bank || !budgetForm.value.start_date || !budgetForm.value.end_date || !budgetForm.value.budget_month) {
     toast.add({
       severity: 'warn',
       summary: 'Campos requeridos',
@@ -671,6 +707,7 @@ const saveBudget = async () => {
     if (editingBudget.value) {
       await budgetStore.updateBudget(editingBudget.value._id, {
         name: budgetForm.value.name,
+        bank: budgetForm.value.bank,
         start_date: budgetForm.value.start_date.toISOString(),
         end_date: budgetForm.value.end_date.toISOString(),
         budget_month: budgetForm.value.budget_month,
@@ -686,6 +723,7 @@ const saveBudget = async () => {
     } else {
       await budgetStore.createBudget({
         name: budgetForm.value.name,
+        bank: budgetForm.value.bank,
         start_date: budgetForm.value.start_date.toISOString(),
         end_date: budgetForm.value.end_date.toISOString(),
         budget_month: budgetForm.value.budget_month,
@@ -1008,9 +1046,21 @@ const deleteBudget = async () => {
 }
 
 .budget-item {
+  position: relative;
   border-radius: 24px;
   overflow: hidden;
+  background:
+    radial-gradient(circle at top right, var(--budget-bank-glow) 0%, transparent 34%),
+    color-mix(in srgb, var(--surface-card) 90%, transparent);
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.budget-item::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: var(--budget-bank-surface);
 }
 
 .budget-item :deep(.p-card-body) {
@@ -1033,7 +1083,7 @@ const deleteBudget = async () => {
 .budget-item:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-md);
-  border-color: rgba(15, 139, 111, 0.18);
+  border-color: color-mix(in srgb, var(--budget-bank-accent) 24%, var(--surface-border));
 }
 
 .budget-header {
@@ -1051,16 +1101,39 @@ const deleteBudget = async () => {
 }
 
 .budget-avatar {
-  width: 42px;
+  min-width: 42px;
   height: 42px;
+  padding: 0 0.8rem;
   border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, #0f8b6f 0%, #d97706 100%);
+  background: var(--budget-bank-surface);
   color: white;
+  font-size: 0.82rem;
   font-weight: 800;
-  box-shadow: 0 14px 24px rgba(15, 139, 111, 0.22);
+  letter-spacing: 0.08em;
+  box-shadow: 0 14px 24px var(--budget-bank-shadow);
+}
+
+.budget-bank-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+  background: var(--budget-bank-pill-bg);
+  color: var(--budget-bank-pill-color);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.budget-bank-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--budget-bank-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--budget-bank-accent) 18%, transparent);
 }
 
 .budget-meta-top {
@@ -1124,8 +1197,8 @@ const deleteBudget = async () => {
   min-width: 145px;
   padding: 0.85rem 0.9rem;
   border-radius: 18px;
-  background: color-mix(in srgb, var(--surface-ground) 72%, transparent);
-  border: 1px solid rgba(124, 97, 61, 0.1);
+  background: color-mix(in srgb, var(--budget-bank-accent-soft) 16%, var(--surface-ground));
+  border: 1px solid color-mix(in srgb, var(--budget-bank-accent) 14%, transparent);
 }
 
 .budget-balance-panel span {
@@ -1174,7 +1247,7 @@ const deleteBudget = async () => {
 }
 
 .emphasis-item {
-  background: linear-gradient(135deg, rgba(15, 139, 111, 0.08) 0%, rgba(217, 119, 6, 0.06) 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--budget-bank-accent) 10%, white) 0%, color-mix(in srgb, var(--budget-bank-accent-soft) 18%, white) 100%);
 }
 
 .summary-label {
@@ -1211,7 +1284,25 @@ const deleteBudget = async () => {
 
 .budget-detail-button {
   width: 100%;
-  box-shadow: 0 14px 26px rgba(15, 139, 111, 0.16);
+  box-shadow: 0 14px 26px var(--budget-bank-shadow);
+}
+
+.bank-option-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.bank-option-logo {
+  min-width: 3.2rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-ground) 76%, transparent);
+  color: var(--heading-color);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-align: center;
 }
 
 .budget-actions-grid {

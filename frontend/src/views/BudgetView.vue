@@ -32,6 +32,10 @@
                   <i class="pi pi-calendar"></i>
                   {{ formatDate(budget.start_date) }} - {{ formatDate(budget.end_date) }}
                 </span>
+                <span v-if="budget.bank" class="budget-bank-chip" :style="budgetBankStyle">
+                  <span class="budget-bank-chip-mark">{{ budgetBankBrand.logoText }}</span>
+                  {{ budget.bank }}
+                </span>
                 <Tag 
                   :value="formatBudgetStatus(budget.status).label" 
                   :severity="formatBudgetStatus(budget.status).severity"
@@ -112,8 +116,40 @@
         </div>
       </div>
 
+      <!-- Budget Feasibility Summary -->
+      <Card v-if="hasBudgetItems" class="budget-feasibility-card">
+        <template #content>
+          <div class="feasibility-summary">
+            <div class="feasibility-copy">
+              <span class="feasibility-kicker">Resumen del presupuesto</span>
+              <h2>Viabilidad del presupuesto</h2>
+              <p>
+                {{ budgetIncomeGap > 0
+                  ? 'Con los ingresos actuales todavia no alcanza para cubrir todo lo planificado.'
+                  : 'Los ingresos actuales alcanzan para cubrir lo planificado.' }}
+              </p>
+            </div>
+
+            <div class="feasibility-metrics">
+              <div class="feasibility-metric">
+                <span class="metric-label">Total planificado</span>
+                <strong class="metric-value">{{ formatCurrency(summary.total_planned || 0) }}</strong>
+              </div>
+              <div class="feasibility-metric">
+                <span class="metric-label">Ingresos totales</span>
+                <strong class="metric-value text-green">{{ formatCurrency(feasibilityTotalIncome) }}</strong>
+              </div>
+              <div class="feasibility-metric" :class="budgetIncomeGap > 0 ? 'metric-alert' : 'metric-ok'">
+                <span class="metric-label">Valor faltante</span>
+                <strong class="metric-value">{{ formatCurrency(budgetIncomeGap) }}</strong>
+              </div>
+            </div>
+          </div>
+        </template>
+      </Card>
+
       <!-- Budget Items Progress -->
-      <Card v-if="summary.budget_items && summary.budget_items.length > 0" class="budget-items-card">
+      <Card v-if="hasBudgetItems" class="budget-items-card">
         <template #header>
           <div class="card-header">
             <div class="header-title-section">
@@ -608,10 +644,21 @@
         <div class="form-row">
           <div class="form-field">
             <label for="bank">Banco *</label>
-            <InputText 
+            <div v-if="budget?.bank" class="locked-bank-field" :style="budgetBankStyle">
+              <span class="locked-bank-logo">{{ budgetBankBrand.logoText }}</span>
+              <div class="locked-bank-copy">
+                <strong>{{ budget.bank }}</strong>
+                <small>Este presupuesto opera solo con este banco.</small>
+              </div>
+            </div>
+            <Select
+              v-else
               id="bank"
               v-model="transactionForm.bank"
-              placeholder="ej. BBVA"
+              :options="budgetBankOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Selecciona banco"
               class="w-full"
             />
           </div>
@@ -776,6 +823,7 @@ import { useTransactionStore } from '@/stores/transactions'
 import { useCategoryStore } from '@/stores/categories'
 import { useRecurringStore } from '@/stores/recurring'
 import { useFormatters } from '@/composables/useFormatters'
+import { BUDGET_BANK_OPTIONS, getBankBrand } from '@/constants/banks'
 import { useToast } from 'primevue/usetoast'
 import ProgressSpinner from 'primevue/progressspinner'
 import Calendar from 'primevue/calendar'
@@ -821,16 +869,20 @@ const selectedRecurring = ref([])
 const editingBudgetItems = ref(false)
 const tempBudgetItems = ref([])
 
-const transactionForm = ref({
+const budgetBankOptions = BUDGET_BANK_OPTIONS
+
+const createDefaultTransactionForm = () => ({
   type: 'expense',
   amount: 0,
   category: '',
-  bank: '',
+  bank: budget.value?.bank || '',
   payment_method: 'debit',
   timestamp: new Date(),
   comment: '',
   is_charged: false
 })
+
+const transactionForm = ref(createDefaultTransactionForm())
 
 const typeOptions = [
   { label: 'Todos', value: 'all' },
@@ -852,6 +904,33 @@ const availableCategories = computed(() => {
     return categoryStore.sortedExpenseCategories
   }
   return categoryStore.sortedActiveCategories
+})
+
+const hasBudgetItems = computed(() => {
+  return Array.isArray(summary.value.budget_items) && summary.value.budget_items.length > 0
+})
+
+const budgetBankBrand = computed(() => getBankBrand(budget.value?.bank))
+
+const budgetBankStyle = computed(() => ({
+  '--budget-bank-accent': budgetBankBrand.value.accent,
+  '--budget-bank-surface': budgetBankBrand.value.surface,
+  '--budget-bank-pill-bg': budgetBankBrand.value.pillBackground,
+  '--budget-bank-pill-color': budgetBankBrand.value.pillColor,
+  '--budget-bank-shadow': budgetBankBrand.value.shadow
+}))
+
+const feasibilityTotalIncome = computed(() => {
+  return transactionStore.transactions
+    .filter(transaction => transaction.budget_id === budgetId.value && transaction.type === 'income')
+    .reduce((sum, transaction) => sum + transaction.amount, 0)
+})
+
+const budgetIncomeGap = computed(() => {
+  const totalPlanned = summary.value.total_planned || 0
+  const totalIncome = feasibilityTotalIncome.value
+
+  return Math.max(totalPlanned - totalIncome, 0)
 })
 
 const sortedBudgetItems = computed(() => {
@@ -1137,6 +1216,10 @@ onMounted(async () => {
 const loadBudget = async () => {
   budget.value = await budgetStore.getBudget(budgetId.value)
   summary.value = await budgetStore.getBudgetSummary(budgetId.value)
+
+  if (!editingTransaction.value && budget.value?.bank) {
+    transactionForm.value.bank = budget.value.bank
+  }
 }
 
 const goBack = () => {
@@ -1220,16 +1303,7 @@ const rowClass = (data) => {
 const closeTransactionDialog = () => {
   showTransactionDialog.value = false
   editingTransaction.value = null
-  transactionForm.value = {
-    type: 'expense',
-    amount: 0,
-    category: '',
-    bank: '',
-    payment_method: 'debit',
-    timestamp: new Date(),
-    comment: '',
-    is_charged: false
-  }
+  transactionForm.value = createDefaultTransactionForm()
 }
 
 const saveTransaction = async () => {
@@ -1249,7 +1323,7 @@ const saveTransaction = async () => {
       type: transactionForm.value.type,
       amount: transactionForm.value.amount,
       category: transactionForm.value.category,
-      bank: transactionForm.value.bank,
+      bank: budget.value?.bank || transactionForm.value.bank,
       payment_method: transactionForm.value.payment_method,
       timestamp: transactionForm.value.timestamp.toISOString(),
       comment: transactionForm.value.comment,
@@ -1292,7 +1366,7 @@ const editTransaction = (transaction) => {
     type: transaction.type,
     amount: transaction.amount,
     category: transaction.category,
-    bank: transaction.bank,
+    bank: budget.value?.bank || transaction.bank,
     payment_method: transaction.payment_method,
     timestamp: new Date(transaction.timestamp),
     comment: transaction.comment || '',
@@ -1514,6 +1588,32 @@ const saveBudgetItems = async () => {
   gap: 0.5rem;
   font-size: 1rem;
   color: var(--text-color-secondary);
+}
+
+.budget-bank-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  background: var(--budget-bank-pill-bg);
+  color: var(--budget-bank-pill-color);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.budget-bank-chip-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.8rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  color: white;
+  background: var(--budget-bank-surface);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  box-shadow: 0 12px 20px var(--budget-bank-shadow);
 }
 
 .header-actions {
@@ -1794,6 +1894,45 @@ const saveBudgetItems = async () => {
   width: 100%;
 }
 
+.locked-bank-field {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--budget-bank-accent) 18%, transparent);
+  background: var(--budget-bank-pill-bg);
+}
+
+.locked-bank-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.2rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 999px;
+  color: white;
+  background: var(--budget-bank-surface);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  box-shadow: 0 12px 20px var(--budget-bank-shadow);
+}
+
+.locked-bank-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.locked-bank-copy strong {
+  color: var(--text-color);
+}
+
+.locked-bank-copy small {
+  color: var(--text-color-secondary);
+}
+
 /* Recurring List */
 .recurring-list {
   display: flex;
@@ -1839,6 +1978,97 @@ const saveBudgetItems = async () => {
 }
 
 /* Budget Items Card */
+.budget-feasibility-card {
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.feasibility-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%);
+}
+
+.feasibility-copy {
+  flex: 1;
+}
+
+.feasibility-kicker {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary-color);
+}
+
+.feasibility-copy h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.feasibility-copy p {
+  margin: 0;
+  color: var(--text-color-secondary);
+  line-height: 1.5;
+}
+
+.feasibility-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(170px, 1fr));
+  gap: 1rem;
+  flex: 1.2;
+}
+
+.feasibility-metric {
+  padding: 1rem;
+  border-radius: 14px;
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.metric-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-color-secondary);
+}
+
+.metric-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-color);
+  line-height: 1.1;
+}
+
+.metric-alert {
+  border-color: rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.metric-alert .metric-value {
+  color: #ef4444;
+}
+
+.metric-ok {
+  border-color: rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.metric-ok .metric-value {
+  color: #10b981;
+}
+
 .budget-items-card {
   margin-bottom: 2rem;
 }
@@ -2152,6 +2382,15 @@ const saveBudgetItems = async () => {
 
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .feasibility-summary {
+    flex-direction: column;
+  }
+
+  .feasibility-metrics {
+    grid-template-columns: 1fr;
+    width: 100%;
   }
 
   .header-filters {

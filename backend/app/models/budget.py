@@ -1,7 +1,10 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Dict, Union, Literal
 from datetime import datetime
 from decimal import Decimal
+
+
+BankName = Literal["BBVA", "ING Direct"]
 
 
 class BudgetItem(BaseModel):
@@ -27,11 +30,12 @@ class BudgetBase(BaseModel):
 
 
 class BudgetCreate(BudgetBase):
-    pass
+    bank: BankName
 
 
 class Budget(BudgetBase):
     id: str = Field(..., alias="_id")
+    bank: Optional[BankName] = None
     created_at: datetime
     updated_at: datetime
     
@@ -44,6 +48,7 @@ class Budget(BudgetBase):
 
 class BudgetUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
+    bank: Optional[BankName] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     budget_month: Optional[str] = Field(None, min_length=1, max_length=20, pattern=r"^[A-Za-z]+-\d{4}$")
