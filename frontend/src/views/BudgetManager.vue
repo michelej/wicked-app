@@ -1,77 +1,61 @@
 <template>
   <div class="budget-manager">
-    <section class="hero-panel">
-      <div class="hero-copy">
-        <span class="hero-kicker">Budget studio</span>
-        <h1 class="page-title">Gestiona presupuestos con una vista mas clara y operativa.</h1>
-        <p class="page-subtitle">{{ currentTabSummary.description }}</p>
+    <section class="budget-toolbar">
+      <div class="toolbar-row">
+        <div class="toolbar-copy">
+          <span class="section-kicker">Presupuestos</span>
+          <h1 class="page-title">Presupuestos</h1>
+        </div>
 
-        <div class="hero-actions">
+        <Button
+          label="Nuevo Presupuesto"
+          icon="pi pi-plus"
+          severity="success"
+          class="toolbar-primary-action"
+          @click="showCreateDialog = true"
+        />
+      </div>
+
+      <div class="toolbar-row toolbar-row-secondary">
+        <div class="status-tabs">
           <Button
-            label="Nuevo Presupuesto"
-            icon="pi pi-plus"
-            severity="success"
-            class="hero-primary-action"
-            @click="showCreateDialog = true"
+            :label="`Activos (${budgetStore.activeBudgets.length})`"
+            :severity="currentTab === 'active' ? 'primary' : 'secondary'"
+            :outlined="currentTab !== 'active'"
+            @click="currentTab = 'active'"
           />
-          <div class="hero-tag-card">
-            <span>Vista activa</span>
-            <strong>{{ currentTabSummary.label }}</strong>
+          <Button
+            :label="`Cerrados (${budgetStore.closedBudgets.length})`"
+            :severity="currentTab === 'closed' ? 'primary' : 'secondary'"
+            :outlined="currentTab !== 'closed'"
+            @click="currentTab = 'closed'"
+          />
+          <Button
+            :label="`Borradores (${budgetStore.draftBudgets.length})`"
+            :severity="currentTab === 'draft' ? 'primary' : 'secondary'"
+            :outlined="currentTab !== 'draft'"
+            @click="currentTab = 'draft'"
+          />
+        </div>
+
+        <div class="toolbar-metrics">
+          <div class="toolbar-metric">
+            <span>Visibles</span>
+            <strong>{{ filteredBudgets.length }}</strong>
+          </div>
+          <div class="toolbar-metric">
+            <span>Balance</span>
+            <strong :class="{ negative: visibleBalanceTotal < 0 }">{{ formatCurrency(visibleBalanceTotal) }}</strong>
+          </div>
+          <div class="toolbar-metric">
+            <span>Planificado</span>
+            <strong>{{ formatCurrency(visiblePlannedTotal) }}</strong>
+          </div>
+          <div class="toolbar-metric">
+            <span>Categorias</span>
+            <strong>{{ plannedCategoriesCount }}</strong>
           </div>
         </div>
-      </div>
-
-      <div class="hero-metrics-grid">
-        <div class="hero-metric-tile">
-          <span>Presupuestos visibles</span>
-          <strong>{{ filteredBudgets.length }}</strong>
-        </div>
-        <div class="hero-metric-tile">
-          <span>Balance agregado</span>
-          <strong :class="{ negative: visibleBalanceTotal < 0 }">{{ formatCurrency(visibleBalanceTotal) }}</strong>
-        </div>
-        <div class="hero-metric-tile">
-          <span>Total planificado</span>
-          <strong>{{ formatCurrency(visiblePlannedTotal) }}</strong>
-        </div>
-        <div class="hero-metric-tile">
-          <span>Transacciones</span>
-          <strong>{{ visibleTransactionsTotal }}</strong>
-        </div>
-      </div>
-    </section>
-
-    <section class="status-shell">
-      <div class="status-shell-header">
-        <div>
-          <span class="section-kicker">Segmentacion</span>
-          <h2>Explora por estado sin perder contexto.</h2>
-        </div>
-        <div class="status-summary-pill">
-          <span>Con categorias planificadas</span>
-          <strong>{{ plannedCategoriesCount }}</strong>
-        </div>
-      </div>
-
-      <div class="status-tabs">
-        <Button
-          :label="`Activos (${budgetStore.activeBudgets.length})`"
-          :severity="currentTab === 'active' ? 'primary' : 'secondary'"
-          :outlined="currentTab !== 'active'"
-          @click="currentTab = 'active'"
-        />
-        <Button
-          :label="`Cerrados (${budgetStore.closedBudgets.length})`"
-          :severity="currentTab === 'closed' ? 'primary' : 'secondary'"
-          :outlined="currentTab !== 'closed'"
-          @click="currentTab = 'closed'"
-        />
-        <Button
-          :label="`Borradores (${budgetStore.draftBudgets.length})`"
-          :severity="currentTab === 'draft' ? 'primary' : 'secondary'"
-          :outlined="currentTab !== 'draft'"
-          @click="currentTab = 'draft'"
-        />
       </div>
     </section>
 
@@ -546,33 +530,8 @@ const totalPlanned = computed(() => {
   }, 0)
 })
 
-const currentTabSummary = computed(() => {
-  if (currentTab.value === 'closed') {
-    return {
-      label: 'Cerrados',
-      description: 'Analiza presupuestos finalizados y revisa el resultado real frente a la planificacion.'
-    }
-  }
-
-  if (currentTab.value === 'draft') {
-    return {
-      label: 'Borradores',
-      description: 'Prepara nuevas versiones de presupuesto antes de llevarlas a ejecucion.'
-    }
-  }
-
-  return {
-    label: 'Activos',
-    description: 'Monitorea presupuestos vigentes, balance disponible y avance operativo sin perder detalle.'
-  }
-})
-
 const visibleBalanceTotal = computed(() => {
   return filteredBudgets.value.reduce((sum, budget) => sum + (budget.summary?.balance || 0), 0)
-})
-
-const visibleTransactionsTotal = computed(() => {
-  return filteredBudgets.value.reduce((sum, budget) => sum + (budget.summary?.transactions_count || 0), 0)
 })
 
 const visiblePlannedTotal = computed(() => {
@@ -820,56 +779,46 @@ const deleteBudget = async () => {
   }
 }
 
-.hero-panel,
-.status-shell,
+.budget-toolbar,
 .empty-state,
 .budget-item {
   border: 1px solid var(--surface-border);
   box-shadow: var(--shadow-sm);
 }
 
-.hero-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(300px, 1fr);
-  gap: 1rem;
-  padding: 1.15rem 1.25rem;
-  border-radius: 28px;
-  background: var(--hero-gradient);
-  overflow: hidden;
-  position: relative;
-}
-
-.hero-panel::after {
-  content: '';
-  position: absolute;
-  right: -5rem;
-  bottom: -5rem;
-  width: 16rem;
-  height: 16rem;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(15, 139, 111, 0.16) 0%, rgba(15, 139, 111, 0) 70%);
-}
-
-.hero-copy,
-.hero-metrics-grid {
-  position: relative;
-  z-index: 1;
-}
-
-.hero-copy {
+.budget-toolbar {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 0.7rem;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--surface-card) 88%, transparent);
 }
 
-.hero-kicker,
+.toolbar-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.toolbar-row-secondary {
+  align-items: flex-start;
+}
+
+.toolbar-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
 .section-kicker {
   display: inline-flex;
   width: fit-content;
-  padding: 0.35rem 0.75rem;
+  padding: 0.28rem 0.65rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.68);
+  background: color-mix(in srgb, var(--surface-ground) 74%, transparent);
   color: var(--primary-color);
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -878,36 +827,31 @@ const deleteBudget = async () => {
 }
 
 .page-title {
-  max-width: 12ch;
   margin: 0;
-  font-size: clamp(1.85rem, 3.2vw, 2.8rem);
-  font-weight: 800;
+  font-size: clamp(1.45rem, 2.4vw, 2rem);
+  font-weight: 700;
   color: var(--heading-color);
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
 }
 
-.page-subtitle {
-  max-width: 60ch;
-  margin: 0;
-  color: var(--text-color-secondary);
-  line-height: 1.5;
-  font-size: 0.96rem;
-}
-
-.hero-actions {
+.status-tabs {
   display: flex;
-  align-items: center;
   gap: 0.65rem;
   flex-wrap: wrap;
 }
 
-.hero-primary-action {
-  box-shadow: 0 18px 30px rgba(15, 139, 111, 0.2);
+.toolbar-primary-action {
+  box-shadow: 0 14px 26px rgba(15, 139, 111, 0.16);
 }
 
-.hero-tag-card,
-.hero-metric-tile,
-.status-summary-pill,
+.toolbar-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
+  gap: 0.65rem;
+  margin-left: auto;
+}
+
+.toolbar-metric,
 .summary-item,
 .empty-items,
 .total-planned {
@@ -915,85 +859,28 @@ const deleteBudget = async () => {
   backdrop-filter: blur(12px);
 }
 
-.hero-tag-card {
+.toolbar-metric {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.65rem 0.85rem;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
   border-radius: 16px;
   border: 1px solid rgba(124, 97, 61, 0.12);
 }
 
-.hero-tag-card span,
-.status-summary-pill span {
+.toolbar-metric span {
   color: var(--text-color-secondary);
-  font-size: 0.82rem;
+  font-size: 0.76rem;
 }
 
-.hero-tag-card strong,
-.status-summary-pill strong {
+.toolbar-metric strong {
   color: var(--heading-color);
-  font-size: 1rem;
+  font-size: 0.98rem;
 }
 
-.hero-metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
-}
-
-.hero-metric-tile {
-  padding: 0.8rem 0.9rem;
-  border-radius: 16px;
-  border: 1px solid rgba(124, 97, 61, 0.12);
-}
-
-.hero-metric-tile span {
-  display: block;
-  margin-bottom: 0.25rem;
-  color: var(--text-color-secondary);
-  font-size: 0.78rem;
-}
-
-.hero-metric-tile strong {
-  color: var(--heading-color);
-  font-size: 1.05rem;
-}
-
-.hero-metric-tile strong.negative {
+.toolbar-metric strong.negative {
   color: var(--danger-color);
-}
-
-.status-shell {
-  padding: 1.25rem;
-  border-radius: 28px;
-  background: color-mix(in srgb, var(--surface-card) 84%, transparent);
-}
-
-.status-shell-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.status-shell-header h2 {
-  font-size: 1.2rem;
-  margin-top: 0.6rem;
-}
-
-.status-summary-pill {
-  min-width: 180px;
-  padding: 0.85rem 1rem;
-  border-radius: 20px;
-  border: 1px solid rgba(124, 97, 61, 0.12);
-}
-
-.status-tabs {
-  display: flex;
-  gap: 0.85rem;
-  flex-wrap: wrap;
 }
 
 .loading-state {
@@ -1464,8 +1351,14 @@ const deleteBudget = async () => {
 }
 
 @media (max-width: 1100px) {
-  .hero-panel {
-    grid-template-columns: 1fr;
+  .toolbar-row-secondary {
+    flex-direction: column;
+  }
+
+  .toolbar-metrics {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-left: 0;
   }
 }
 
@@ -1474,24 +1367,23 @@ const deleteBudget = async () => {
     gap: 1rem;
   }
 
-  .hero-panel,
-  .status-shell {
-    padding: 1.1rem;
-    border-radius: 24px;
+  .budget-toolbar {
+    padding: 0.95rem;
+    border-radius: 20px;
   }
 
   .page-title {
-    font-size: 2rem;
+    font-size: 1.65rem;
   }
 
-  .status-shell-header,
+  .toolbar-row,
   .budget-header,
   .section-header {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .hero-metrics-grid,
+  .toolbar-metrics,
   .summary-grid,
   .budgets-list,
   .form-row {
@@ -1503,7 +1395,7 @@ const deleteBudget = async () => {
   }
 
   .budget-actions-grid,
-  .hero-primary-action {
+  .toolbar-primary-action {
     width: 100%;
   }
 
@@ -1515,11 +1407,11 @@ const deleteBudget = async () => {
     width: 100%;
   }
 
-  .hero-actions,
   .status-tabs {
     width: 100%;
   }
 
+  .toolbar-primary-action,
   .status-tabs :deep(.p-button) {
     width: 100%;
   }

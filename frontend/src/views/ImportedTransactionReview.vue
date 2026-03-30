@@ -207,6 +207,7 @@ import { useBudgetStore } from '@/stores/budgets'
 import { useCategoryStore } from '@/stores/categories'
 import { useFormatters } from '@/composables/useFormatters'
 import { BUDGET_BANK_OPTIONS, formatBudgetOptionLabel } from '@/constants/banks'
+import { findImportedTransactionCategoryMatch } from '@/constants/importedTransactionRules'
 
 const router = useRouter()
 const toast = useToast()
@@ -326,6 +327,58 @@ const bankLabel = (value) => {
   return value === 'bbva' ? 'BBVA' : 'ING Direct'
 }
 
+const resolveImportedOperationDate = (item) => {
+  const rawDate = item?.suggested_timestamp || item?.booking_date || item?.value_date
+  if (!rawDate) {
+    return null
+  }
+
+  const parsedDate = new Date(rawDate)
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate
+}
+
+const findMatchingBudgetId = (item) => {
+  const operationDate = resolveImportedOperationDate(item)
+  const operationBank = item?.source_bank ? bankLabel(item.source_bank) : null
+
+  if (!operationDate || !operationBank) {
+    return null
+  }
+
+  const matchingBudget = budgetStore.budgets.find((budget) => {
+    if (budget.bank !== operationBank) {
+      return false
+    }
+
+    const startDate = new Date(budget.start_date)
+    const endDate = new Date(budget.end_date)
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      return false
+    }
+
+    return operationDate >= startDate && operationDate <= endDate
+  })
+
+  return matchingBudget?._id || null
+}
+
+const getCategoriesForImportedType = (type) => {
+  return type === 'income'
+    ? categoryStore.sortedIncomeCategories
+    : categoryStore.sortedExpenseCategories
+}
+
+const findMatchingCategory = (item) => {
+  const resolvedBank = item?.source_bank ? bankLabel(item.source_bank) : null
+
+  return findImportedTransactionCategoryMatch({
+    item,
+    categories: getCategoriesForImportedType(item?.type),
+    bankLabel: resolvedBank
+  })
+}
+
 const statusLabel = (value) => {
   if (value === 'processed_imported') return 'Importada'
   if (value === 'processed_skipped') return 'Procesada sin importar'
@@ -342,8 +395,8 @@ const openProcessDialog = (item) => {
   selectedItem.value = item
   processForm.value = {
     type: item.type,
-    budget_id: null,
-    category: null,
+    budget_id: findMatchingBudgetId(item),
+    category: findMatchingCategory(item),
     bank: bankLabel(item.source_bank),
     payment_method: item.payment_method_suggestion || 'debit',
     timestamp: item.suggested_timestamp ? new Date(item.suggested_timestamp) : new Date(),
