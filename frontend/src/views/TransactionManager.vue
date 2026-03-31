@@ -279,6 +279,20 @@
             </template>
           </Column>
 
+          <Column header="Comentario">
+            <template #body="{ data }">
+              <span
+                v-if="data.comment"
+                class="comment-hover"
+                v-tooltip.top="data.comment"
+              >
+                <i class="pi pi-comment"></i>
+                <span>Ver</span>
+              </span>
+              <span v-else class="comment-empty">-</span>
+            </template>
+          </Column>
+
           <Column header="Acciones" :exportable="false">
             <template #body="{ data }">
               <div class="action-buttons">
@@ -1215,6 +1229,23 @@ const deleteTransaction = async () => {
 .action-buttons {
   display: flex;
   gap: 0.25rem;
+}
+
+.comment-hover {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-ground) 72%, transparent);
+  color: var(--text-color-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: help;
+}
+
+.comment-empty {
+  color: var(--text-color-secondary);
 }
 
 .dialog-content {
