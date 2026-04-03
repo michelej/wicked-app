@@ -34,6 +34,11 @@ const router = createRouter({
           component: () => import('@/views/TransactionManager.vue')
         },
         {
+          path: 'credit-cards',
+          name: 'credit-cards',
+          component: () => import('@/views/CreditCardManager.vue')
+        },
+        {
           path: 'imports/upload',
           name: 'imports-upload',
           component: () => import('@/views/ImportedTransactionUpload.vue')

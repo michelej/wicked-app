@@ -1,7 +1,7 @@
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 from app.models.category import Category, CategoryCreate, CategoryUpdate
 
 
@@ -37,7 +37,7 @@ class CategoryService:
         limit: int = 100
     ) -> List[Category]:
         """Get all categories with optional filters"""
-        query = {}
+        query: dict[str, Any] = {}
         if type_filter:
             query["type"] = {"$in": [type_filter, "both"]}
         if is_active is not None:
@@ -79,8 +79,9 @@ class CategoryService:
     async def is_category_in_use(self, category_name: str) -> bool:
         """Check if a category is being used in transactions or recurring expenses"""
         transactions_count = await self.db.transactions.count_documents({"category": category_name})
+        credit_card_transactions_count = await self.db.credit_card_transactions.count_documents({"category": category_name})
         recurring_count = await self.db.recurring_expenses.count_documents({"category": category_name})
-        return transactions_count > 0 or recurring_count > 0
+        return transactions_count > 0 or credit_card_transactions_count > 0 or recurring_count > 0
     
     async def get_parent_categories(
         self, 
@@ -88,7 +89,8 @@ class CategoryService:
         is_active: Optional[bool] = None
     ) -> List[Category]:
         """Get only parent categories (no parent_id)"""
-        query = {"parent_id": None}
+        query: dict[str, Any] = {}
+        query["parent_id"] = None
         if type_filter:
             query["type"] = {"$in": [type_filter, "both"]}
         if is_active is not None:

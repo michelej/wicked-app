@@ -54,6 +54,11 @@ const model = ref([
         to: '/transactions'
       },
       {
+        label: 'Tarjeta de Credito',
+        icon: 'pi pi-fw pi-credit-card',
+        to: '/credit-cards'
+      },
+      {
         label: 'Importar extractos',
         icon: 'pi pi-fw pi-upload',
         to: '/imports/upload'

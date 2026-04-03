@@ -1,4 +1,9 @@
 from .category import Category, CategoryCreate, CategoryUpdate
+from .credit_card_transaction import (
+    CreditCardTransaction,
+    CreditCardTransactionCreate,
+    CreditCardTransactionUpdate,
+)
 from .transaction import Transaction, TransactionCreate, TransactionUpdate
 from .budget import Budget, BudgetCreate, BudgetUpdate, BudgetSummary
 from .imported_transaction import ImportedTransaction, ImportedTransactionProcess, ImportedTransactionsUploadResponse
@@ -8,6 +13,9 @@ __all__ = [
     "Category",
     "CategoryCreate",
     "CategoryUpdate",
+    "CreditCardTransaction",
+    "CreditCardTransactionCreate",
+    "CreditCardTransactionUpdate",
     "Transaction",
     "TransactionCreate",
     "TransactionUpdate",
