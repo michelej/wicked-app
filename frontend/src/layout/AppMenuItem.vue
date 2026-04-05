@@ -113,10 +113,18 @@ const linkClass = computed(() => [
 ])
 
 const isActive = computed(() => {
+  if (Array.isArray(props.item.activeRouteNames) && props.item.activeRouteNames.length > 0) {
+    return props.item.activeRouteNames.includes(route.name)
+  }
+
   return route.path === props.item.to || route.path.startsWith(props.item.to + '/')
 })
 
 const isExactActive = computed(() => {
+  if (Array.isArray(props.item.activeRouteNames) && props.item.activeRouteNames.length > 0) {
+    return route.path === props.item.to
+  }
+
   return route.path === props.item.to
 })
 </script>

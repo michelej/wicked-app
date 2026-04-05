@@ -83,9 +83,6 @@
                 class="categories-table"
                 stripedRows
                 showGridlines
-                paginator
-                :rows="10"
-                :rowsPerPageOptions="[10, 20, 50]"
               >
                 <template #empty>
                   <div class="empty-state compact-empty-state">
@@ -172,9 +169,6 @@
                 class="categories-table"
                 stripedRows
                 showGridlines
-                paginator
-                :rows="10"
-                :rowsPerPageOptions="[10, 20, 50]"
               >
                 <template #empty>
                   <div class="empty-state compact-empty-state">
@@ -658,7 +652,7 @@ onMounted(async () => {
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--text-color);
-  margin-bottom: 1rem;
+   margin-bottom: 0.8rem;
 }
 
 .compact-empty-state {
@@ -669,59 +663,82 @@ onMounted(async () => {
   background: var(--primary-color);
   color: white;
   font-weight: 600;
-  padding: 0.5rem 0.75rem;
+   padding: 0.28rem 0.45rem;
   border: 1px solid var(--surface-border);
   text-align: left;
-  font-size: 0.8125rem;
-  line-height: 1.2;
+   font-size: 0.78rem;
+   line-height: 1.15;
 }
 
 .categories-table :deep(.p-datatable-tbody > tr > td) {
-  padding: 0.35rem 0.5rem;
+   padding: 0.26rem 0.45rem;
   border: 1px solid var(--surface-border);
   vertical-align: middle;
-  font-size: 0.8125rem;
-  line-height: 1.2;
+   font-size: 0.78rem;
+   line-height: 1.15;
+}
+
+.categories-table :deep(.p-tag) {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.42rem;
+}
+
+.categories-table :deep(.p-paginator) {
+  padding: 0.4rem 0.55rem;
+}
+
+.categories-table :deep(.p-paginator .p-paginator-page),
+.categories-table :deep(.p-paginator .p-paginator-prev),
+.categories-table :deep(.p-paginator .p-paginator-next),
+.categories-table :deep(.p-paginator .p-paginator-first),
+.categories-table :deep(.p-paginator .p-paginator-last) {
+  min-width: 1.9rem;
+  height: 1.9rem;
+}
+
+.categories-table :deep(.p-paginator .p-dropdown-label) {
+  font-size: 0.78rem;
 }
 
 /* Category Hierarchy */
 .category-cell {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+   gap: 0.22rem;
 }
 
 .parent-category {
   font-weight: 600;
   background: rgba(59, 130, 246, 0.05);
-  padding: 0.5rem;
+   padding: 0.35rem 0.45rem;
   border-radius: 8px;
-  margin: 0.25rem 0;
+   margin: 0.15rem 0;
 }
 
 .subcategory {
-  margin-left: 2rem;
+   margin-left: 1.2rem;
   opacity: 0.9;
 }
 
 .parent-indicator {
-  font-size: 1.1rem;
+   font-size: 0.95rem;
 }
 
 .subcategory-indicator {
   color: var(--primary-color);
-  font-size: 1rem;
+   font-size: 0.82rem;
   font-weight: bold;
+  margin-right: 0.15rem;
 }
 
 .parent-tag {
   font-weight: 600;
-  font-size: 0.9rem;
+   font-size: 0.76rem;
 }
 
 .amount-text {
   font-weight: 600;
-  font-size: 0.9rem;
+   font-size: 0.84rem;
 }
 
 .text-red {
@@ -731,6 +748,7 @@ onMounted(async () => {
 .transaction-count {
   font-weight: 600;
   color: var(--text-color);
+  font-size: 0.78rem;
 }
 
 @media (max-width: 768px) {

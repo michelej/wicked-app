@@ -531,9 +531,6 @@
             class="expenses-summary-table"
             stripedRows
             showGridlines
-            paginator
-            :rows="10"
-            :rowsPerPageOptions="[10, 20, 50]"
           >
             <template #empty>
               <div class="empty-state">
@@ -1735,6 +1732,23 @@ const saveBudgetItems = async () => {
   border-radius: 16px;
 }
 
+.transactions-card :deep(.p-card-body) {
+  padding: 0;
+}
+
+.transactions-card :deep(.p-card-content) {
+  padding: 0.75rem 0.85rem 0.9rem;
+}
+
+.transactions-card .card-header {
+  padding: 0.95rem 1rem;
+  gap: 0.75rem;
+}
+
+.transactions-card .card-header h2 {
+  font-size: 1.1rem;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -1757,6 +1771,20 @@ const saveBudgetItems = async () => {
   align-items: center;
 }
 
+.transactions-card .header-filters {
+  gap: 0.55rem;
+}
+
+.transactions-card .header-filters :deep(.p-inputtext),
+.transactions-card .header-filters :deep(.p-select-label) {
+  padding: 0.42rem 0.65rem;
+  font-size: 0.84rem;
+}
+
+.transactions-card .header-filters :deep(.p-select-dropdown) {
+  width: 2.2rem;
+}
+
 .search-input {
   width: 250px;
 }
@@ -1764,9 +1792,9 @@ const saveBudgetItems = async () => {
 /* Transaction Summary */
 .transaction-summary {
   display: flex;
-  gap: 2rem;
-  margin-bottom: 2rem;
-  padding: 1.5rem;
+  gap: 0.9rem;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem 0.85rem;
   background: var(--surface-ground);
   border-radius: 12px;
   border: 1px solid var(--surface-border);
@@ -1775,19 +1803,21 @@ const saveBudgetItems = async () => {
 .summary-item {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.65rem;
   flex: 1;
+  min-width: 0;
 }
 
 .summary-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 0.95rem;
   color: white;
+  flex-shrink: 0;
 }
 
 .income-icon {
@@ -1807,11 +1837,11 @@ const saveBudgetItems = async () => {
 }
 
 .summary-value {
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text-color);
-  margin: 0 0 0.25rem 0;
-  line-height: 1;
+  margin: 0 0 0.15rem 0;
+  line-height: 1.1;
 }
 
 .summary-value.negative {
@@ -1819,7 +1849,7 @@ const saveBudgetItems = async () => {
 }
 
 .summary-label {
-  font-size: 0.875rem;
+  font-size: 0.78rem;
   color: var(--text-color-secondary);
   font-weight: 500;
   margin: 0;
@@ -1839,17 +1869,17 @@ const saveBudgetItems = async () => {
 
 .date-text {
   color: var(--text-color-secondary);
-  font-size: 0.875rem;
+  font-size: 0.8rem;
 }
 
 .amount-text {
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.84rem;
 }
 
 .balance-text {
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.84rem;
 }
 
 .text-green {
@@ -1865,15 +1895,20 @@ const saveBudgetItems = async () => {
   gap: 0.25rem;
 }
 
+.action-buttons :deep(.p-button) {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
 .comment-hover {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.6rem;
+  gap: 0.3rem;
+  padding: 0.22rem 0.45rem;
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface-ground) 72%, transparent);
   color: var(--text-color-secondary);
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 600;
   cursor: help;
 }
@@ -2117,34 +2152,53 @@ const saveBudgetItems = async () => {
   margin-bottom: 2rem;
 }
 
+.budget-items-card :deep(.p-card-body),
+.budget-items-card :deep(.p-card-body) {
+  padding: 0;
+}
+
+.budget-items-card :deep(.p-card-content) {
+  padding: 0.55rem 0.7rem 0.75rem;
+}
+
 .budget-items-card .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 1rem;
-  padding: 1.5rem;
+  gap: 0.7rem;
+  padding: 0.8rem 1rem;
   border-bottom: 1px solid var(--surface-border);
+}
+
+.budget-items-card .card-header h2 {
+  font-size: 1.05rem;
 }
 
 .header-title-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: 0.7rem;
   flex: 1;
 }
 
 .header-actions-section {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.45rem;
   align-items: center;
+}
+
+.budget-items-card .header-actions-section :deep(.p-button) {
+  padding: 0.4rem 0.65rem;
+  font-size: 0.76rem;
 }
 
 .budget-items-card .summary-stats {
   display: flex;
-  gap: 1.5rem;
-  font-size: 0.9375rem;
+  gap: 0.8rem;
+  font-size: 0.78rem;
+  line-height: 1.1;
 }
 
 .budget-items-card .stat-item {
@@ -2152,9 +2206,16 @@ const saveBudgetItems = async () => {
 }
 
 .add-category-section {
-  padding: 1rem 1.5rem;
+  padding: 0.45rem 0.6rem 0.5rem;
+  margin-bottom: 0.45rem;
   border-bottom: 1px solid var(--surface-border);
   background: var(--surface-50);
+  border-radius: 10px;
+}
+
+.add-category-section :deep(.p-button) {
+  padding: 0.38rem 0.65rem;
+  font-size: 0.75rem;
 }
 
 /* Excel-like Table Styles */
@@ -2166,32 +2227,70 @@ const saveBudgetItems = async () => {
   background: var(--primary-color);
   color: white;
   font-weight: 600;
-  padding: 0.35rem 0.5rem;
+  padding: 0.24rem 0.45rem;
   border: 1px solid var(--surface-border);
   text-align: left;
-  font-size: 0.8125rem;
-  line-height: 1.2;
+  font-size: 0.74rem;
+  line-height: 1.05;
 }
 
 .budget-items-table :deep(.p-datatable-tbody > tr > td) {
-  padding: 0.35rem 0.5rem;
+  padding: 0.18rem 0.45rem;
   border: 1px solid var(--surface-border);
   vertical-align: middle;
-  font-size: 0.8125rem;
-  line-height: 1.2;
+  font-size: 0.75rem;
+  line-height: 1.05;
+}
+
+.budget-items-table :deep(.p-column-title) {
+  line-height: 1.05;
+}
+
+.budget-items-table :deep(.p-inputtext),
+.budget-items-table :deep(.p-inputnumber-input),
+.budget-items-table :deep(.p-select-label) {
+  padding: 0.26rem 0.4rem;
+  min-height: 2rem;
+  font-size: 0.75rem;
+}
+
+.budget-items-table :deep(.p-select-dropdown) {
+  width: 2rem;
 }
 
 .transactions-table :deep(.p-datatable-thead > tr > th) {
-  padding: 0.35rem 0.5rem;
-  font-size: 0.8125rem;
-  line-height: 1.2;
+  padding: 0.28rem 0.45rem;
+  font-size: 0.78rem;
+  line-height: 1.15;
 }
 
 .transactions-table :deep(.p-datatable-tbody > tr > td) {
-  padding: 0.35rem 0.5rem;
+  padding: 0.26rem 0.45rem;
   vertical-align: middle;
-  font-size: 0.8125rem;
-  line-height: 1.2;
+  font-size: 0.78rem;
+  line-height: 1.15;
+}
+
+.transactions-table :deep(.p-tag) {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.42rem;
+}
+
+.transactions-table :deep(.p-paginator) {
+  padding: 0.4rem 0.55rem;
+}
+
+.transactions-table :deep(.p-paginator .p-paginator-page),
+.transactions-table :deep(.p-paginator .p-paginator-prev),
+.transactions-table :deep(.p-paginator .p-paginator-next),
+.transactions-table :deep(.p-paginator .p-paginator-first),
+.transactions-table :deep(.p-paginator .p-paginator-last) {
+  min-width: 1.9rem;
+  height: 1.9rem;
+}
+
+.transactions-table :deep(.p-paginator .p-dropdown-label) {
+  font-size: 0.78rem;
 }
 
 /* Expenses Summary Card */
@@ -2201,17 +2300,25 @@ const saveBudgetItems = async () => {
   border-radius: 16px;
 }
 
+.expenses-summary-card :deep(.p-card-body) {
+  padding: 0;
+}
+
+.expenses-summary-card :deep(.p-card-content) {
+  padding: 0.65rem 0.85rem 0.9rem;
+}
+
 .expenses-summary-card .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
+  padding: 0.95rem 1rem;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .expenses-summary-card .card-header h2 {
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-color);
   margin: 0;
@@ -2219,8 +2326,9 @@ const saveBudgetItems = async () => {
 
 .expenses-summary-card .summary-stats {
   display: flex;
-  gap: 1.5rem;
-  font-size: 0.9375rem;
+  gap: 0.85rem;
+  font-size: 0.8rem;
+  line-height: 1.15;
 }
 
 .expenses-summary-card .stat-item {
@@ -2231,21 +2339,47 @@ const saveBudgetItems = async () => {
   background: var(--primary-color);
   color: white;
   font-weight: 600;
-  padding: 0.5rem 0.75rem;
+  padding: 0.28rem 0.45rem;
   border: 1px solid var(--surface-border);
   text-align: left;
-  font-size: 0.875rem;
+  font-size: 0.78rem;
+  line-height: 1.15;
 }
 
 .expenses-summary-table :deep(.p-datatable-tbody > tr > td) {
-  padding: 0.5rem 0.75rem;
+  padding: 0.26rem 0.45rem;
   border: 1px solid var(--surface-border);
   vertical-align: middle;
+  font-size: 0.78rem;
+  line-height: 1.15;
+}
+
+.expenses-summary-table :deep(.p-tag) {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.42rem;
+}
+
+.expenses-summary-table :deep(.p-paginator) {
+  padding: 0.4rem 0.55rem;
+}
+
+.expenses-summary-table :deep(.p-paginator .p-paginator-page),
+.expenses-summary-table :deep(.p-paginator .p-paginator-prev),
+.expenses-summary-table :deep(.p-paginator .p-paginator-next),
+.expenses-summary-table :deep(.p-paginator .p-paginator-first),
+.expenses-summary-table :deep(.p-paginator .p-paginator-last) {
+  min-width: 1.9rem;
+  height: 1.9rem;
+}
+
+.expenses-summary-table :deep(.p-paginator .p-dropdown-label) {
+  font-size: 0.78rem;
 }
 
 .transaction-count {
   font-weight: 600;
   color: var(--text-color);
+  font-size: 0.78rem;
 }
 
 .banks-list {
@@ -2255,8 +2389,8 @@ const saveBudgetItems = async () => {
 }
 
 .bank-tag {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
+  font-size: 0.72rem;
+  padding: 0.18rem 0.42rem;
 }
 
 .budget-items-table :deep(.p-datatable-tbody > tr:hover) {
@@ -2314,20 +2448,20 @@ const saveBudgetItems = async () => {
 .category-cell {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.22rem;
   font-weight: 500;
 }
 
 .subcategory-indicator {
   color: var(--text-color-secondary);
   font-weight: 600;
-  margin-right: 0.25rem;
+  margin-right: 0.2rem;
 }
 
 .amount-value {
   font-family: 'Courier New', monospace;
   font-weight: 600;
-  font-size: 0.9375rem;
+  font-size: 0.8rem;
 }
 
 .amount-value.spent {
@@ -2337,19 +2471,19 @@ const saveBudgetItems = async () => {
 .percentage-cell {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.18rem;
 }
 
 .percentage-value {
   font-weight: 600;
-  font-size: 0.9375rem;
+  font-size: 0.78rem;
 }
 
 .mini-progress-bar {
   width: 100%;
-  height: 8px;
+  height: 4px;
   background: var(--surface-200);
-  border-radius: 4px;
+  border-radius: 999px;
   overflow: hidden;
 }
 

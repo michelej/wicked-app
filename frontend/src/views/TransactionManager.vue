@@ -1159,6 +1159,28 @@ const deleteTransaction = async () => {
   background: color-mix(in srgb, var(--surface-card) 84%, transparent);
 }
 
+.table-card :deep(.p-card-body) {
+  padding: 0;
+}
+
+.table-card :deep(.p-card-content) {
+  padding: 0.8rem 0.9rem 0.95rem;
+}
+
+.table-card .panel-header {
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+}
+
+.table-card .panel-header h2 {
+  margin-top: 0.45rem;
+  font-size: 1.08rem;
+}
+
+.table-summary-pill {
+  padding: 0.7rem 0.85rem;
+}
+
 .panel-header {
   display: flex;
   justify-content: space-between;
@@ -1210,12 +1232,12 @@ const deleteTransaction = async () => {
 .date-text,
 .bank-text {
   color: var(--text-color-secondary);
-  font-size: 0.875rem;
+  font-size: 0.8rem;
 }
 
 .amount-text {
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.84rem;
 }
 
 .text-green {
@@ -1231,21 +1253,61 @@ const deleteTransaction = async () => {
   gap: 0.25rem;
 }
 
+.action-buttons :deep(.p-button) {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
 .comment-hover {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.6rem;
+  gap: 0.3rem;
+  padding: 0.22rem 0.45rem;
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface-ground) 72%, transparent);
   color: var(--text-color-secondary);
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 600;
   cursor: help;
 }
 
 .comment-empty {
   color: var(--text-color-secondary);
+}
+
+.transactions-table :deep(.p-datatable-thead > tr > th) {
+  padding: 0.28rem 0.45rem;
+  font-size: 0.78rem;
+  line-height: 1.15;
+}
+
+.transactions-table :deep(.p-datatable-tbody > tr > td) {
+  padding: 0.26rem 0.45rem;
+  vertical-align: middle;
+  font-size: 0.78rem;
+  line-height: 1.15;
+}
+
+.transactions-table :deep(.p-tag) {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.42rem;
+}
+
+.transactions-table :deep(.p-paginator) {
+  padding: 0.4rem 0.55rem;
+}
+
+.transactions-table :deep(.p-paginator .p-paginator-page),
+.transactions-table :deep(.p-paginator .p-paginator-prev),
+.transactions-table :deep(.p-paginator .p-paginator-next),
+.transactions-table :deep(.p-paginator .p-paginator-first),
+.transactions-table :deep(.p-paginator .p-paginator-last) {
+  min-width: 1.9rem;
+  height: 1.9rem;
+}
+
+.transactions-table :deep(.p-paginator .p-dropdown-label) {
+  font-size: 0.78rem;
 }
 
 .dialog-content {
