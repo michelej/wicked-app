@@ -5,7 +5,7 @@
       <div class="header-content">
         <div class="header-text">
           <h1 class="page-title">Resumen Mensual de Presupuestos</h1>
-          <p class="page-subtitle">Vista consolidada de gastos por mes y categoría</p>
+          <p class="page-subtitle">Vista consolidada de gastos por mes, categoria y extractos de tarjeta de credito</p>
         </div>
       </div>
     </div>
@@ -44,81 +44,182 @@
         </template>
 
         <template #content>
-          <!-- Parent Category Total Cards -->
-          <div class="parent-category-summary">
-            <h3>Resumen por Categoría Padre</h3>
-            <div class="parent-category-cards">
-              <Card
-                v-for="parent in getParentCategorySummary(monthSummary)"
-                :key="parent.category"
-                class="parent-summary-card"
+          <div class="summary-section">
+            <div class="section-header">
+              <div>
+                <span class="section-kicker">Presupuesto</span>
+                <h3>Movimientos del presupuesto</h3>
+                <p>Este apartado conserva solo los gastos registrados directamente en las transacciones del presupuesto.</p>
+              </div>
+              <div class="section-stat">
+                <span>Total gastado</span>
+                <strong>{{ formatCurrency(monthSummary.total_spent) }}</strong>
+              </div>
+            </div>
+
+            <div class="parent-category-summary">
+              <h4>Resumen por Categoría Padre</h4>
+              <div class="parent-category-cards">
+                <Card
+                  v-for="parent in getBudgetParentCategorySummary(monthSummary)"
+                  :key="`budget-${parent.category}`"
+                  class="parent-summary-card"
+                >
+                  <template #content>
+                    <div class="card-title">{{ parent.category }}</div>
+                    <div class="card-stats-single">
+                      <span class="amount-text text-red">{{ formatCurrency(parent.spent) }}</span>
+                      <small class="amount-label">Gastado</small>
+                    </div>
+                  </template>
+                </Card>
+              </div>
+            </div>
+
+            <div class="categories-summary">
+              <h4>Gastos por Categoría</h4>
+              <DataTable
+                :value="getBudgetCategoriesForMonth(monthSummary)"
+                class="categories-table"
+                stripedRows
+                showGridlines
+                paginator
+                :rows="10"
+                :rowsPerPageOptions="[10, 20, 50]"
               >
-                <template #content>
-                  <div class="card-title">{{ parent.category }}</div>
-                  <div class="card-stats-single">
-                    <span class="amount-text text-red">{{ formatCurrency(parent.spent) }}</span>
-                    <small class="amount-label">Gastado</small>
+                <template #empty>
+                  <div class="empty-state compact-empty-state">
+                    <i class="pi pi-chart-bar"></i>
+                    <p>No hay gastos registrados para este mes</p>
                   </div>
                 </template>
-              </Card>
+
+                <Column field="category" header="Categoría" sortable>
+                  <template #body="{ data }">
+                    <div class="category-cell" :class="{ 'parent-category': data.isParent, 'subcategory': data.isSubcategory }">
+                      <span v-if="data.isParent" class="parent-indicator">📁</span>
+                      <span v-if="data.isSubcategory" class="subcategory-indicator">↳</span>
+                      <Tag
+                        :value="data.category"
+                        :severity="data.isParent ? 'primary' : 'secondary'"
+                        :class="{ 'parent-tag': data.isParent }"
+                      />
+                    </div>
+                  </template>
+                </Column>
+
+                <Column field="spent" header="Gastado" sortable>
+                  <template #body="{ data }">
+                    <span class="amount-text text-red">
+                      {{ formatCurrency(data.spent) }}
+                    </span>
+                  </template>
+                </Column>
+
+                <Column field="transactions" header="Transacciones" sortable>
+                  <template #body="{ data }">
+                    <span class="transaction-count">{{ data.transactions }}</span>
+                  </template>
+                </Column>
+
+                <Column field="planned" header="Planificado" sortable>
+                  <template #body="{ data }">
+                    <span class="amount-text">
+                      {{ data.planned > 0 ? formatCurrency(data.planned) : '-' }}
+                    </span>
+                  </template>
+                </Column>
+              </DataTable>
             </div>
           </div>
 
-          <!-- Categories Summary -->
-          <div class="categories-summary">
-            <h3>Gastos por Categoría</h3>
-            <DataTable
-              :value="getCategoriesForMonth(monthSummary)"
-              class="categories-table"
-              stripedRows
-              showGridlines
-              paginator
-              :rows="10"
-              :rowsPerPageOptions="[10, 20, 50]"
-            >
-              <template #empty>
-                <div class="empty-state">
-                  <i class="pi pi-chart-bar"></i>
-                  <p>No hay gastos registrados para este mes</p>
-                </div>
-              </template>
+          <div v-if="hasCreditCardSummary(monthSummary)" class="summary-section credit-card-section">
+            <div class="section-header">
+              <div>
+                <span class="section-kicker">Tarjeta de credito</span>
+                <h3>Extracto asociado al presupuesto</h3>
+                <p>Este apartado mantiene separado el gasto de tarjeta segun el presupuesto al que pertenece cada movimiento.</p>
+              </div>
+              <div class="section-stat">
+                <span>Total extracto</span>
+                <strong>{{ formatCurrency(monthSummary.credit_card_total_spent || 0) }}</strong>
+              </div>
+            </div>
 
-              <Column field="category" header="Categoría" sortable>
-                <template #body="{ data }">
-                  <div class="category-cell" :class="{ 'parent-category': data.isParent, 'subcategory': data.isSubcategory }">
-                    <span v-if="data.isParent" class="parent-indicator">📁</span>
-                    <span v-if="data.isSubcategory" class="subcategory-indicator">↳</span>
-                    <Tag
-                      :value="data.category"
-                      :severity="data.isParent ? 'primary' : 'secondary'"
-                      :class="{ 'parent-tag': data.isParent }"
-                    />
+            <div class="parent-category-summary">
+              <h4>Resumen por Categoría Padre</h4>
+              <div class="parent-category-cards">
+                <Card
+                  v-for="parent in getCreditCardParentCategorySummary(monthSummary)"
+                  :key="`credit-${parent.category}`"
+                  class="parent-summary-card"
+                >
+                  <template #content>
+                    <div class="card-title">{{ parent.category }}</div>
+                    <div class="card-stats-single">
+                      <span class="amount-text text-red">{{ formatCurrency(parent.spent) }}</span>
+                      <small class="amount-label">Gastado</small>
+                    </div>
+                  </template>
+                </Card>
+              </div>
+            </div>
+
+            <div class="categories-summary">
+              <h4>Gastos por Categoría</h4>
+              <DataTable
+                :value="getCreditCardCategoriesForMonth(monthSummary)"
+                class="categories-table"
+                stripedRows
+                showGridlines
+                paginator
+                :rows="10"
+                :rowsPerPageOptions="[10, 20, 50]"
+              >
+                <template #empty>
+                  <div class="empty-state compact-empty-state">
+                    <i class="pi pi-credit-card"></i>
+                    <p>No hay gastos de tarjeta registrados para este mes</p>
                   </div>
                 </template>
-              </Column>
 
-              <Column field="spent" header="Gastado" sortable>
-                <template #body="{ data }">
-                  <span class="amount-text text-red">
-                    {{ formatCurrency(data.spent) }}
-                  </span>
-                </template>
-              </Column>
+                <Column field="category" header="Categoría" sortable>
+                  <template #body="{ data }">
+                    <div class="category-cell" :class="{ 'parent-category': data.isParent, 'subcategory': data.isSubcategory }">
+                      <span v-if="data.isParent" class="parent-indicator">📁</span>
+                      <span v-if="data.isSubcategory" class="subcategory-indicator">↳</span>
+                      <Tag
+                        :value="data.category"
+                        :severity="data.isParent ? 'primary' : 'secondary'"
+                        :class="{ 'parent-tag': data.isParent }"
+                      />
+                    </div>
+                  </template>
+                </Column>
 
-              <Column field="transactions" header="Transacciones" sortable>
-                <template #body="{ data }">
-                  <span class="transaction-count">{{ data.transactions }}</span>
-                </template>
-              </Column>
+                <Column field="spent" header="Gastado" sortable>
+                  <template #body="{ data }">
+                    <span class="amount-text text-red">
+                      {{ formatCurrency(data.spent) }}
+                    </span>
+                  </template>
+                </Column>
 
-              <Column field="planned" header="Planificado" sortable>
-                <template #body="{ data }">
-                  <span class="amount-text">
-                    {{ data.planned > 0 ? formatCurrency(data.planned) : '-' }}
-                  </span>
-                </template>
-              </Column>
-            </DataTable>
+                <Column field="transactions" header="Transacciones" sortable>
+                  <template #body="{ data }">
+                    <span class="transaction-count">{{ data.transactions }}</span>
+                  </template>
+                </Column>
+
+                <Column field="planned" header="Planificado" sortable>
+                  <template #body="{ data }">
+                    <span class="amount-text">
+                      {{ data.planned > 0 ? formatCurrency(data.planned) : '-' }}
+                    </span>
+                  </template>
+                </Column>
+              </DataTable>
+            </div>
           </div>
         </template>
       </Card>
@@ -166,43 +267,41 @@ const loadMonthlySummaries = async () => {
   }
 }
 
-const getCategoriesForMonth = (monthSummary) => {
-  const categories = []
-  const processedParents = new Set()
-
-  // Build category to parent mapping from store
+const buildCategoryToParentMap = () => {
   const categoryToParent = {}
+
   categoryStore.categories.forEach(cat => {
     if (cat.parent_id) {
-      const parentCat = categoryStore.categories.find(p => p._id === cat.parent_id)
+      const parentCat = categoryStore.categories.find(parent => parent._id === cat.parent_id)
       if (parentCat) {
         categoryToParent[cat.name] = parentCat.name
       }
     }
   })
 
-  // First, collect all categories
-  const allCategories = Object.keys(monthSummary.categories_summary)
+  return categoryToParent
+}
 
-  // Group by parent
+const normalizeCategoryTotals = (data = {}) => ({
+  spent: typeof data.spent === 'number' && !Number.isNaN(data.spent) ? data.spent : 0,
+  transactions: typeof data.transactions === 'number' && !Number.isNaN(data.transactions) ? data.transactions : 0,
+  planned: typeof data.planned === 'number' && !Number.isNaN(data.planned) ? data.planned : 0
+})
+
+const getCategoriesForSummary = (categoriesSummary = {}) => {
+  const categories = []
+  const categoryToParent = buildCategoryToParentMap()
   const parentGroups = {}
 
-  allCategories.forEach(catName => {
-    // Skip "Transferido Cuentas" category as it's a transfer
-    if (catName === "Transferido Cuentas") {
+  Object.entries(categoriesSummary).forEach(([catName, rawData]) => {
+    if (catName === 'Transferido Cuentas') {
       return
     }
-    
-    const data = monthSummary.categories_summary[catName]
+
+    const data = normalizeCategoryTotals(rawData)
     const parentName = categoryToParent[catName]
 
-    // Ensure data values are valid numbers
-    const spent = typeof data.spent === 'number' && !isNaN(data.spent) ? data.spent : 0
-    const transactions = typeof data.transactions === 'number' && !isNaN(data.transactions) ? data.transactions : 0
-    const planned = typeof data.planned === 'number' && !isNaN(data.planned) ? data.planned : 0
-
     if (parentName) {
-      // This is a subcategory
       if (!parentGroups[parentName]) {
         parentGroups[parentName] = {
           category: parentName,
@@ -213,52 +312,55 @@ const getCategoriesForMonth = (monthSummary) => {
         }
       }
 
-      parentGroups[parentName].spent += spent
-      parentGroups[parentName].transactions += transactions
-      parentGroups[parentName].planned += planned
+      parentGroups[parentName].spent += data.spent
+      parentGroups[parentName].transactions += data.transactions
+      parentGroups[parentName].planned += data.planned
       parentGroups[parentName].subcategories.push({
         category: catName,
-        spent: spent,
-        transactions: transactions,
-        planned: planned,
+        spent: data.spent,
+        transactions: data.transactions,
+        planned: data.planned,
         isSubcategory: true
       })
-    } else {
-      // This is a parent or standalone category
-      if (!parentGroups[catName]) {
-        parentGroups[catName] = {
-          category: catName,
-          spent: spent,
-          transactions: transactions,
-          planned: planned,
-          subcategories: []
-        }
+
+      return
+    }
+
+    if (!parentGroups[catName]) {
+      parentGroups[catName] = {
+        category: catName,
+        spent: 0,
+        transactions: 0,
+        planned: 0,
+        subcategories: []
       }
     }
+
+    parentGroups[catName].spent += data.spent
+    parentGroups[catName].transactions += data.transactions
+    parentGroups[catName].planned += data.planned
   })
 
-  // Build final result
-  Object.values(parentGroups).forEach(parent => {
-    // Sort subcategories by spent amount
-    parent.subcategories.sort((a, b) => b.spent - a.spent)
+  Object.values(parentGroups)
+    .sort((a, b) => b.spent - a.spent)
+    .forEach(parent => {
+      parent.subcategories.sort((a, b) => b.spent - a.spent)
 
-    // Add parent
-    categories.push({
-      ...parent,
-      isParent: parent.subcategories.length > 0
-    })
+      categories.push({
+        ...parent,
+        isParent: parent.subcategories.length > 0
+      })
 
-    // Add subcategories
-    parent.subcategories.forEach(sub => {
-      categories.push(sub)
+      parent.subcategories.forEach(sub => {
+        categories.push(sub)
+      })
     })
-  })
 
   return categories
 }
 
-const getParentCategorySummary = (monthSummary) => {
-  const categories = getCategoriesForMonth(monthSummary)
+const getParentCategorySummary = (categoriesSummary = {}) => {
+  const categories = getCategoriesForSummary(categoriesSummary)
 
   return categories
     .filter(item => item.isParent)
@@ -267,6 +369,18 @@ const getParentCategorySummary = (monthSummary) => {
       spent: parent.spent
     }))
     .sort((a, b) => b.spent - a.spent)
+}
+
+const getBudgetCategoriesForMonth = (monthSummary) => getCategoriesForSummary(monthSummary.categories_summary)
+
+const getBudgetParentCategorySummary = (monthSummary) => getParentCategorySummary(monthSummary.categories_summary)
+
+const getCreditCardCategoriesForMonth = (monthSummary) => getCategoriesForSummary(monthSummary.credit_card_categories_summary)
+
+const getCreditCardParentCategorySummary = (monthSummary) => getParentCategorySummary(monthSummary.credit_card_categories_summary)
+
+const hasCreditCardSummary = (monthSummary) => {
+  return getCreditCardCategoriesForMonth(monthSummary).length > 0 || Number(monthSummary.credit_card_total_spent || 0) > 0
 }
 
 // Lifecycle
@@ -396,13 +510,78 @@ onMounted(async () => {
   color: var(--text-color-secondary);
 }
 
+.summary-section {
+  margin-top: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.04) 0%, rgba(59, 130, 246, 0.01) 100%);
+}
+
+.credit-card-section {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(249, 115, 22, 0.03) 100%);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.section-kicker {
+  display: inline-flex;
+  margin-bottom: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary-color);
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.section-header p {
+  margin: 0.4rem 0 0;
+  color: var(--text-color-secondary);
+  line-height: 1.5;
+}
+
+.section-stat {
+  min-width: 180px;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-card);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.section-stat span {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-color-secondary);
+}
+
+.section-stat strong {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
 /* Categories Summary */
 .parent-category-summary {
-  margin-top: 1rem;
   margin-bottom: 1.25rem;
 }
 
-.parent-category-summary h3 {
+.parent-category-summary h4 {
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--text-color);
@@ -468,11 +647,15 @@ onMounted(async () => {
   margin-top: 1rem;
 }
 
-.categories-summary h3 {
+.categories-summary h4 {
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--text-color);
   margin-bottom: 1rem;
+}
+
+.compact-empty-state {
+  padding: 2rem 1rem;
 }
 
 .categories-table :deep(.p-datatable-thead > tr > th) {
@@ -541,5 +724,16 @@ onMounted(async () => {
 .transaction-count {
   font-weight: 600;
   color: var(--text-color);
+}
+
+@media (max-width: 768px) {
+  .section-header {
+    flex-direction: column;
+  }
+
+  .section-stat {
+    width: 100%;
+    min-width: 0;
+  }
 }
 </style>

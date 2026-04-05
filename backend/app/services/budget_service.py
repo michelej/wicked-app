@@ -289,6 +289,53 @@ class BudgetService:
     
     async def get_monthly_budget_summary(self) -> List[MonthlyBudgetSummary]:
         """Get monthly budget summaries grouped by budget_month"""
+
+        def initialize_category_summary(summary: dict, category_name: str):
+            if category_name not in summary:
+                summary[category_name] = {
+                    "planned": Decimal(0),
+                    "spent": Decimal(0),
+                    "transactions": 0
+                }
+
+        async def aggregate_expenses(collection_name: str, budget_id: str, target_summary: dict) -> tuple[Decimal, int]:
+            collection = self.db[collection_name]
+            cursor = collection.find({"budget_id": budget_id, "type": "expense"})
+            total_amount = Decimal(0)
+            transaction_count = 0
+
+            async for trans in cursor:
+                category_name = trans["category"]
+                amount = Decimal(str(trans["amount"]))
+
+                if category_name == "Transferido Cuentas":
+                    continue
+
+                initialize_category_summary(target_summary, category_name)
+                target_summary[category_name]["spent"] += amount
+                target_summary[category_name]["transactions"] += 1
+
+                if category_name in category_to_parent:
+                    parent_name = category_to_parent[category_name]
+                    initialize_category_summary(target_summary, parent_name)
+                    target_summary[parent_name]["spent"] += amount
+                    target_summary[parent_name]["transactions"] += 1
+
+                total_amount += amount
+                transaction_count += 1
+
+            return total_amount, transaction_count
+
+        def serialize_category_summary(summary: dict) -> dict:
+            converted_summary = {}
+            for cat_name, data in summary.items():
+                converted_summary[cat_name] = {
+                    "planned": float(data["planned"]),
+                    "spent": float(data["spent"]),
+                    "transactions": data["transactions"]
+                }
+
+            return converted_summary
         
         # Get all budgets
         budgets = []
@@ -311,6 +358,9 @@ class BudgetService:
             total_planned = Decimal(0)
             total_spent = Decimal(0)
             categories_summary = {}
+            credit_card_total_spent = Decimal(0)
+            credit_card_transactions_count = 0
+            credit_card_categories_summary = {}
             latest_start_date = max((budget.start_date for budget in month_budgets), default=datetime.min)
             
             # Get all categories to build parent-child relationship map
@@ -338,54 +388,17 @@ class BudgetService:
                 # Add planned amounts
                 for item in budget.budget_items:
                     total_planned += item.planned_amount
-                
-                # Get transactions for this budget
-                transactions = []
-                cursor = self.db.transactions.find({"budget_id": str(budget.id), "type": "expense"})
-                async for trans in cursor:
-                    transactions.append(trans)
-                
-                # Calculate actual spending by category
-                for trans in transactions:
-                    category_name = trans["category"]
-                    amount = Decimal(str(trans["amount"]))
-                    
-                    # Skip "Transferido Cuentas" category as it's a transfer
-                    if category_name == "Transferido Cuentas":
-                        continue
-                    
-                    # Initialize category if not exists
-                    if category_name not in categories_summary:
-                        categories_summary[category_name] = {
-                            "planned": Decimal(0),
-                            "spent": Decimal(0),
-                            "transactions": 0
-                        }
-                    
-                    categories_summary[category_name]["spent"] += amount
-                    categories_summary[category_name]["transactions"] += 1
-                    total_spent += amount
-                    
-                    # Add to parent category if exists
-                    if category_name in category_to_parent:
-                        parent_name = category_to_parent[category_name]
-                        if parent_name not in categories_summary:
-                            categories_summary[parent_name] = {
-                                "planned": Decimal(0),
-                                "spent": Decimal(0),
-                                "transactions": 0
-                            }
-                        categories_summary[parent_name]["spent"] += amount
-                        categories_summary[parent_name]["transactions"] += 1
-            
-            # Convert categories_summary values to float for JSON serialization
-            converted_categories = {}
-            for cat_name, data in categories_summary.items():
-                converted_categories[cat_name] = {
-                    "planned": float(data["planned"]),
-                    "spent": float(data["spent"]),
-                    "transactions": data["transactions"]
-                }
+
+                budget_spent, _ = await aggregate_expenses("transactions", str(budget.id), categories_summary)
+                total_spent += budget_spent
+
+                credit_spent, credit_transactions = await aggregate_expenses(
+                    "credit_card_transactions",
+                    str(budget.id),
+                    credit_card_categories_summary
+                )
+                credit_card_total_spent += credit_spent
+                credit_card_transactions_count += credit_transactions
             
             summaries.append((
                 latest_start_date,
@@ -394,7 +407,10 @@ class BudgetService:
                     total_planned=total_planned,
                     total_spent=total_spent,
                     budget_count=len(month_budgets),
-                    categories_summary=converted_categories
+                    categories_summary=serialize_category_summary(categories_summary),
+                    credit_card_total_spent=credit_card_total_spent,
+                    credit_card_transactions_count=credit_card_transactions_count,
+                    credit_card_categories_summary=serialize_category_summary(credit_card_categories_summary)
                 )
             ))
         
