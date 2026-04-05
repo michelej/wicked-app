@@ -126,7 +126,9 @@
               <p>
                 {{ budgetIncomeGap > 0
                   ? 'Con los ingresos actuales todavia no alcanza para cubrir todo lo planificado.'
-                  : 'Los ingresos actuales alcanzan para cubrir lo planificado.' }}
+                  : feasibilitySurplus > 0
+                    ? 'Los ingresos actuales cubren lo planificado y dejan un excedente disponible.'
+                    : 'Los ingresos actuales alcanzan justo para cubrir lo planificado.' }}
               </p>
             </div>
 
@@ -142,6 +144,10 @@
               <div class="feasibility-metric" :class="budgetIncomeGap > 0 ? 'metric-alert' : 'metric-ok'">
                 <span class="metric-label">Valor faltante</span>
                 <strong class="metric-value">{{ formatCurrency(budgetIncomeGap) }}</strong>
+              </div>
+              <div class="feasibility-metric" :class="feasibilitySurplus > 0 ? 'metric-ok' : ''">
+                <span class="metric-label">Monto sobrante</span>
+                <strong class="metric-value">{{ formatCurrency(feasibilitySurplus) }}</strong>
               </div>
             </div>
           </div>
@@ -945,6 +951,13 @@ const budgetIncomeGap = computed(() => {
   const totalIncome = feasibilityTotalIncome.value
 
   return Math.max(totalPlanned - totalIncome, 0)
+})
+
+const feasibilitySurplus = computed(() => {
+  const totalPlanned = summary.value.total_planned || 0
+  const totalIncome = feasibilityTotalIncome.value
+
+  return Math.max(totalIncome - totalPlanned, 0)
 })
 
 const sortedBudgetItems = computed(() => {
@@ -2054,7 +2067,7 @@ const saveBudgetItems = async () => {
 
 .feasibility-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(170px, 1fr));
+  grid-template-columns: repeat(4, minmax(170px, 1fr));
   gap: 1rem;
   flex: 1.2;
 }
