@@ -293,6 +293,23 @@ const getCategoriesForSummary = (categoriesSummary = {}) => {
   const categoryToParent = buildCategoryToParentMap()
   const parentGroups = {}
 
+  const ensureParentGroup = (categoryName) => {
+    if (!parentGroups[categoryName]) {
+      parentGroups[categoryName] = {
+        category: categoryName,
+        ownSpent: null,
+        ownTransactions: null,
+        ownPlanned: null,
+        fallbackSpent: 0,
+        fallbackTransactions: 0,
+        fallbackPlanned: 0,
+        subcategories: []
+      }
+    }
+
+    return parentGroups[categoryName]
+  }
+
   Object.entries(categoriesSummary).forEach(([catName, rawData]) => {
     if (catName === 'Transferido Cuentas') {
       return
@@ -302,20 +319,12 @@ const getCategoriesForSummary = (categoriesSummary = {}) => {
     const parentName = categoryToParent[catName]
 
     if (parentName) {
-      if (!parentGroups[parentName]) {
-        parentGroups[parentName] = {
-          category: parentName,
-          spent: 0,
-          transactions: 0,
-          planned: 0,
-          subcategories: []
-        }
-      }
+      const parentGroup = ensureParentGroup(parentName)
 
-      parentGroups[parentName].spent += data.spent
-      parentGroups[parentName].transactions += data.transactions
-      parentGroups[parentName].planned += data.planned
-      parentGroups[parentName].subcategories.push({
+      parentGroup.fallbackSpent += data.spent
+      parentGroup.fallbackTransactions += data.transactions
+      parentGroup.fallbackPlanned += data.planned
+      parentGroup.subcategories.push({
         category: catName,
         spent: data.spent,
         transactions: data.transactions,
@@ -326,22 +335,20 @@ const getCategoriesForSummary = (categoriesSummary = {}) => {
       return
     }
 
-    if (!parentGroups[catName]) {
-      parentGroups[catName] = {
-        category: catName,
-        spent: 0,
-        transactions: 0,
-        planned: 0,
-        subcategories: []
-      }
-    }
-
-    parentGroups[catName].spent += data.spent
-    parentGroups[catName].transactions += data.transactions
-    parentGroups[catName].planned += data.planned
+    const categoryGroup = ensureParentGroup(catName)
+    categoryGroup.ownSpent = data.spent
+    categoryGroup.ownTransactions = data.transactions
+    categoryGroup.ownPlanned = data.planned
   })
 
   Object.values(parentGroups)
+    .map(group => ({
+      category: group.category,
+      spent: group.ownSpent ?? group.fallbackSpent,
+      transactions: group.ownTransactions ?? group.fallbackTransactions,
+      planned: group.ownPlanned ?? group.fallbackPlanned,
+      subcategories: group.subcategories
+    }))
     .sort((a, b) => b.spent - a.spent)
     .forEach(parent => {
       parent.subcategories.sort((a, b) => b.spent - a.spent)
