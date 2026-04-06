@@ -93,15 +93,22 @@
 
                 <Column field="category" header="Categoría" sortable>
                   <template #body="{ data }">
-                    <div class="category-cell" :class="{ 'parent-category': data.isParent, 'subcategory': data.isSubcategory }">
-                      <span v-if="data.isParent" class="parent-indicator">📁</span>
-                      <span v-if="data.isSubcategory" class="subcategory-indicator">↳</span>
-                      <Tag
-                        :value="data.category"
-                        :severity="data.isParent ? 'primary' : 'secondary'"
-                        :class="{ 'parent-tag': data.isParent }"
-                      />
-                    </div>
+                    <button
+                      type="button"
+                      class="category-link-button"
+                      :class="{ 'parent-category': data.isParent, 'subcategory': data.isSubcategory }"
+                      @click="goToTransactionsForMonthCategory(monthSummary, data)"
+                    >
+                      <div class="category-cell">
+                        <span v-if="data.isParent" class="parent-indicator">📁</span>
+                        <span v-if="data.isSubcategory" class="subcategory-indicator">↳</span>
+                        <Tag
+                          :value="data.category"
+                          :severity="data.isParent ? 'primary' : 'secondary'"
+                          :class="{ 'parent-tag': data.isParent }"
+                        />
+                      </div>
+                    </button>
                   </template>
                 </Column>
 
@@ -230,6 +237,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useFormatters } from '@/composables/useFormatters'
 import { useCategoryStore } from '@/stores/categories'
 import budgetService from '@/services/budgetService'
@@ -241,6 +249,7 @@ import Tag from 'primevue/tag'
 
 const { formatCurrency } = useFormatters()
 const categoryStore = useCategoryStore()
+const router = useRouter()
 
 // State
 const monthlySummaries = ref([])
@@ -382,6 +391,24 @@ const getCreditCardParentCategorySummary = (monthSummary) => getParentCategorySu
 
 const hasCreditCardSummary = (monthSummary) => {
   return getCreditCardCategoriesForMonth(monthSummary).length > 0 || Number(monthSummary.credit_card_total_spent || 0) > 0
+}
+
+const goToTransactionsForMonthCategory = (monthSummary, categoryRow) => {
+  const query = {
+    budgetMonth: monthSummary.budget_month,
+    type: 'expense'
+  }
+
+  if (categoryRow.isParent) {
+    query.parentCategory = categoryRow.category
+  } else {
+    query.category = categoryRow.category
+  }
+
+  router.push({
+    name: 'transactions',
+    query
+  })
 }
 
 // Lifecycle
@@ -704,7 +731,31 @@ onMounted(async () => {
 .category-cell {
   display: flex;
   align-items: center;
-   gap: 0.22rem;
+  gap: 0.22rem;
+}
+
+.category-link-button {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.category-link-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary-color) 75%, white);
+  outline-offset: 2px;
+}
+
+.category-link-button:hover .category-cell,
+.category-link-button:focus-visible .category-cell {
+  transform: translateX(1px);
+}
+
+.category-link-button .category-cell {
+  transition: transform 0.18s ease;
 }
 
 .parent-category {

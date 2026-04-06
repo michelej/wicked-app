@@ -186,6 +186,34 @@
             />
           </div>
         </div>
+
+        <div v-if="filters.budgetMonth" class="parent-category-filter-banner">
+          <span class="parent-category-filter-label">Mes activo</span>
+          <Tag :value="filters.budgetMonth" severity="info" />
+          <small>Mostrando transacciones asociadas a este mes de presupuesto.</small>
+          <Button
+            icon="pi pi-times"
+            text
+            rounded
+            severity="secondary"
+            aria-label="Quitar filtro de mes"
+            @click="clearBudgetMonthFilter"
+          />
+        </div>
+
+        <div v-if="filters.parentCategory" class="parent-category-filter-banner">
+          <span class="parent-category-filter-label">Categoría padre activa</span>
+          <Tag :value="filters.parentCategory" severity="info" />
+          <small>Mostrando transacciones de esta categoría y sus subcategorías.</small>
+          <Button
+            icon="pi pi-times"
+            text
+            rounded
+            severity="secondary"
+            aria-label="Quitar filtro de categoría padre"
+            @click="clearParentCategoryFilter"
+          />
+        </div>
       </template>
     </Card>
 
@@ -523,6 +551,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useTransactionStore } from '@/stores/transactions'
 import { useBudgetStore } from '@/stores/budgets'
 import { useCategoryStore } from '@/stores/categories'
@@ -538,6 +567,8 @@ import InputNumber from 'primevue/inputnumber'
 import Textarea from 'primevue/textarea'
 import Checkbox from 'primevue/checkbox'
 
+const route = useRoute()
+const router = useRouter()
 const transactionStore = useTransactionStore()
 const budgetStore = useBudgetStore()
 const categoryStore = useCategoryStore()
@@ -562,13 +593,80 @@ const editingTransaction = ref(null)
 const transactionToDelete = ref(null)
 const budgetBankOptions = BUDGET_BANK_OPTIONS
 
-const filters = ref({
-  search: '',
-  budgetId: null,
-  type: 'all',
-  category: null,
-  status: 'all'
-})
+const normalizeQueryValue = (value) => {
+  if (Array.isArray(value)) {
+    return normalizeQueryValue(value[0])
+  }
+
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmedValue = value.trim()
+  return trimmedValue ? trimmedValue : null
+}
+
+const createFiltersFromQuery = (query = {}) => {
+  const budgetId = normalizeQueryValue(query.budgetId)
+  const budgetMonth = normalizeQueryValue(query.budgetMonth)
+  const type = normalizeQueryValue(query.type)
+  const category = normalizeQueryValue(query.category)
+  const parentCategory = normalizeQueryValue(query.parentCategory)
+  const status = normalizeQueryValue(query.status)
+
+  return {
+    search: '',
+    budgetId,
+    budgetMonth,
+    type: ['all', 'income', 'expense'].includes(type) ? type : 'all',
+    category: parentCategory ? null : category,
+    parentCategory,
+    status: ['all', 'charged', 'pending'].includes(status) ? status : 'all'
+  }
+}
+
+const buildQueryFromFilters = (currentFilters) => {
+  const query = {}
+
+  if (currentFilters.budgetId) {
+    query.budgetId = currentFilters.budgetId
+  }
+
+  if (currentFilters.budgetMonth) {
+    query.budgetMonth = currentFilters.budgetMonth
+  }
+
+  if (currentFilters.type && currentFilters.type !== 'all') {
+    query.type = currentFilters.type
+  }
+
+  if (currentFilters.parentCategory) {
+    query.parentCategory = currentFilters.parentCategory
+  } else if (currentFilters.category) {
+    query.category = currentFilters.category
+  }
+
+  if (currentFilters.status && currentFilters.status !== 'all') {
+    query.status = currentFilters.status
+  }
+
+  return query
+}
+
+const areFilterSetsEqual = (first, second) => {
+  return first.budgetId === second.budgetId &&
+    first.budgetMonth === second.budgetMonth &&
+    first.type === second.type &&
+    first.category === second.category &&
+    first.parentCategory === second.parentCategory &&
+    first.status === second.status
+}
+
+const areQueriesEqual = (first, second) => JSON.stringify(first) === JSON.stringify(second)
+
+const isApplyingRouteFilters = ref(false)
+
+const filters = ref(createFiltersFromQuery(route.query))
 
 const transactionForm = ref({
   budget_id: '',
@@ -648,6 +746,34 @@ const availableCategories = computed(() => {
   return categoryStore.sortedActiveCategories
 })
 
+const categoryParentLookup = computed(() => {
+  const categoryById = new Map(categoryStore.categories.map((category) => [category._id, category]))
+  const lookup = {}
+
+  categoryStore.categories.forEach((category) => {
+    if (!category.parent_id) {
+      return
+    }
+
+    const parentCategory = categoryById.get(category.parent_id)
+    if (parentCategory) {
+      lookup[category.name] = parentCategory.name
+    }
+  })
+
+  return lookup
+})
+
+const budgetMonthLookup = computed(() => {
+  const lookup = {}
+
+  budgetStore.budgets.forEach((budget) => {
+    lookup[budget._id] = budget.budget_month || null
+  })
+
+  return lookup
+})
+
 const buildTransactionParams = () => {
   const params = {}
 
@@ -659,7 +785,7 @@ const buildTransactionParams = () => {
     params.type_filter = filters.value.type
   }
 
-  if (filters.value.category) {
+  if (filters.value.category && !filters.value.parentCategory) {
     params.category = filters.value.category
   }
 
@@ -676,6 +802,21 @@ const loadTransactions = async () => {
 
 const filteredTransactions = computed(() => {
   let transactions = [...transactionStore.transactions]
+
+  if (filters.value.budgetMonth) {
+    transactions = transactions.filter((transaction) => {
+      return budgetMonthLookup.value[transaction.budget_id] === filters.value.budgetMonth
+    })
+  }
+
+  if (filters.value.parentCategory) {
+    transactions = transactions.filter((transaction) => {
+      return transaction.category === filters.value.parentCategory ||
+        categoryParentLookup.value[transaction.category] === filters.value.parentCategory
+    })
+  } else if (filters.value.category) {
+    transactions = transactions.filter((transaction) => transaction.category === filters.value.category)
+  }
 
   if (filters.value.search) {
     const query = filters.value.search.toLowerCase()
@@ -724,8 +865,9 @@ const activeFilterCount = computed(() => {
   return [
     Boolean(filters.value.search),
     Boolean(filters.value.budgetId),
+    Boolean(filters.value.budgetMonth),
     filters.value.type !== 'all',
-    Boolean(filters.value.category),
+    Boolean(filters.value.category || filters.value.parentCategory),
     filters.value.status !== 'all'
   ].filter(Boolean).length
 })
@@ -741,12 +883,67 @@ onMounted(async () => {
 watch(
   [
     () => filters.value.budgetId,
+    () => filters.value.budgetMonth,
     () => filters.value.type,
     () => filters.value.category,
+    () => filters.value.parentCategory,
     () => filters.value.status
   ],
   () => {
+    if (isApplyingRouteFilters.value) {
+      return
+    }
+
+    const nextQuery = buildQueryFromFilters(filters.value)
+    const currentQuery = buildQueryFromFilters(createFiltersFromQuery(route.query))
+
+    if (!areQueriesEqual(nextQuery, currentQuery)) {
+      router.replace({ name: 'transactions', query: nextQuery })
+    }
+
     loadTransactions()
+  }
+)
+
+watch(
+  () => route.query,
+  (query) => {
+    const nextFilters = createFiltersFromQuery(query)
+
+    if (areFilterSetsEqual(filters.value, nextFilters)) {
+      return
+    }
+
+    isApplyingRouteFilters.value = true
+    filters.value = {
+      ...filters.value,
+      ...nextFilters
+    }
+    isApplyingRouteFilters.value = false
+
+    loadTransactions()
+  }
+)
+
+watch(
+  () => filters.value.budgetId,
+  (newBudgetId, oldBudgetId) => {
+    if (isApplyingRouteFilters.value || !filters.value.budgetMonth || newBudgetId === oldBudgetId) {
+      return
+    }
+
+    filters.value.budgetMonth = null
+  }
+)
+
+watch(
+  () => filters.value.category,
+  (newCategory, oldCategory) => {
+    if (isApplyingRouteFilters.value || !filters.value.parentCategory || newCategory === oldCategory) {
+      return
+    }
+
+    filters.value.parentCategory = null
   }
 )
 
@@ -764,10 +961,20 @@ const clearFilters = () => {
   filters.value = {
     search: '',
     budgetId: null,
+    budgetMonth: null,
     type: 'all',
     category: null,
+    parentCategory: null,
     status: 'all'
   }
+}
+
+const clearParentCategoryFilter = () => {
+  filters.value.parentCategory = null
+}
+
+const clearBudgetMonthFilter = () => {
+  filters.value.budgetMonth = null
 }
 
 const closeDialog = () => {
@@ -1199,6 +1406,31 @@ const deleteTransaction = async () => {
   grid-template-columns: 1.4fr repeat(4, minmax(0, 1fr));
   gap: 1rem;
   align-items: end;
+}
+
+.parent-category-filter-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-hover) 80%, transparent);
+  flex-wrap: wrap;
+}
+
+.parent-category-filter-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-color-secondary);
+}
+
+.parent-category-filter-banner small {
+  color: var(--text-color-secondary);
+  font-size: 0.78rem;
 }
 
 .filter-field {

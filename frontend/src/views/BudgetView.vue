@@ -541,18 +541,25 @@
 
             <Column field="category" header="Categoría" sortable>
               <template #body="{ data }">
-                <div class="category-cell" :class="{ 'parent-category': data.isParent, 'subcategory': data.isIndented }">
-                  <span v-if="data.isParent" class="parent-indicator">📁</span>
-                  <span v-if="data.isIndented" class="subcategory-indicator">↳</span>
-                  <Tag 
-                    :value="data.category" 
-                    :severity="data.isParent ? 'primary' : 'secondary'"
-                    :class="{ 'parent-tag': data.isParent }"
-                  />
-                  <span v-if="data.isParent" class="subcategory-count">
-                    ({{ data.subcategories.length }} subcategorías)
-                  </span>
-                </div>
+                <button
+                  type="button"
+                  class="category-link-button"
+                  :class="{ 'parent-category': data.isParent, 'subcategory': data.isIndented }"
+                  @click="goToTransactionsForCategory(data)"
+                >
+                  <div class="category-cell">
+                    <span v-if="data.isParent" class="parent-indicator">📁</span>
+                    <span v-if="data.isIndented" class="subcategory-indicator">↳</span>
+                    <Tag 
+                      :value="data.category" 
+                      :severity="data.isParent ? 'primary' : 'secondary'"
+                      :class="{ 'parent-tag': data.isParent }"
+                    />
+                    <span v-if="data.isParent" class="subcategory-count">
+                      ({{ data.subcategories.length }} subcategorías)
+                    </span>
+                  </div>
+                </button>
               </template>
             </Column>
 
@@ -1248,6 +1255,24 @@ const loadBudget = async () => {
 
 const goBack = () => {
   router.push('/budgets')
+}
+
+const goToTransactionsForCategory = (categoryRow) => {
+  const query = {
+    budgetId: budgetId.value,
+    type: 'expense'
+  }
+
+  if (categoryRow.isParent) {
+    query.parentCategory = categoryRow.category
+  } else {
+    query.category = categoryRow.category
+  }
+
+  router.push({
+    name: 'transactions',
+    query
+  })
 }
 
 const toggleBudgetStatus = async () => {
@@ -2409,6 +2434,30 @@ const saveBudgetItems = async () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.category-link-button {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.category-link-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary-color) 75%, white);
+  outline-offset: 2px;
+}
+
+.category-link-button:hover .category-cell,
+.category-link-button:focus-visible .category-cell {
+  transform: translateX(1px);
+}
+
+.category-link-button .category-cell {
+  transition: transform 0.18s ease;
 }
 
 .parent-category {
