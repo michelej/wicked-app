@@ -318,6 +318,45 @@
         </template>
       </Card>
 
+      <Card v-if="hasBudgetItems" class="budget-feasibility-card budget-availability-card">
+        <template #content>
+          <div class="feasibility-summary">
+            <div class="feasibility-copy">
+              <span class="feasibility-kicker">Reserva operativa</span>
+              <h2>Balance tras cubrir lo restante</h2>
+              <p>
+                {{ projectedAvailableBalance < 0
+                  ? 'Con el balance actual, todavia faltaria dinero para cubrir todo lo pendiente del presupuesto.'
+                  : projectedAvailableBalance > 0
+                    ? 'Tras reservar lo que queda por gastar, todavia mantienes saldo disponible.'
+                    : 'El balance actual cubre exactamente lo que queda pendiente en el presupuesto.' }}
+              </p>
+            </div>
+
+            <div class="feasibility-metrics">
+              <div class="feasibility-metric">
+                <span class="metric-label">Balance actual</span>
+                <strong class="metric-value" :class="{ 'text-red': currentTransactionBalance < 0, 'text-green': currentTransactionBalance >= 0 }">
+                  {{ formatCurrency(currentTransactionBalance) }}
+                </strong>
+              </div>
+              <div class="feasibility-metric">
+                <span class="metric-label">Total restante</span>
+                <strong class="metric-value">{{ formatCurrency(totalRemainingProgress) }}</strong>
+              </div>
+              <div class="feasibility-metric" :class="projectedAvailableBalance >= 0 ? 'metric-ok' : 'metric-alert'">
+                <span class="metric-label">Balance disponible</span>
+                <strong class="metric-value">{{ formatCurrency(projectedAvailableBalance) }}</strong>
+              </div>
+              <div class="feasibility-metric" :class="projectedCoverageGap > 0 ? 'metric-alert' : 'metric-ok'">
+                <span class="metric-label">Valor faltante</span>
+                <strong class="metric-value">{{ formatCurrency(projectedCoverageGap) }}</strong>
+              </div>
+            </div>
+          </div>
+        </template>
+      </Card>
+
       <!-- Transactions Section -->
       <Card class="transactions-card">
         <template #header>
@@ -1028,6 +1067,28 @@ const enrichedBudgetItems = computed(() => {
       banks: banks
     }
   })
+})
+
+const budgetItemsForProjection = computed(() => {
+  return editingBudgetItems.value ? tempBudgetItems.value : sortedBudgetItems.value
+})
+
+const totalRemainingProgress = computed(() => {
+  return budgetItemsForProjection.value.reduce((sum, item) => sum + getRemainingAmount(item), 0)
+})
+
+const currentTransactionBalance = computed(() => {
+  return transactionStore.transactions.reduce((sum, transaction) => {
+    return sum + (transaction.type === 'income' ? transaction.amount : -transaction.amount)
+  }, 0)
+})
+
+const projectedAvailableBalance = computed(() => {
+  return currentTransactionBalance.value - totalRemainingProgress.value
+})
+
+const projectedCoverageGap = computed(() => {
+  return Math.max(totalRemainingProgress.value - currentTransactionBalance.value, 0)
 })
 
 const filteredTransactions = computed(() => {
@@ -2087,6 +2148,10 @@ const saveBudgetItems = async () => {
   border: 1px solid var(--surface-border);
   border-radius: 16px;
   overflow: hidden;
+}
+
+.budget-availability-card .feasibility-summary {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(59, 130, 246, 0.08) 100%);
 }
 
 .feasibility-summary {
