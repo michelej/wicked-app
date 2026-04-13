@@ -13,7 +13,7 @@ import AppMenu from './AppMenu.vue'
   position: fixed;
   width: 300px;
   height: calc(100vh - 5rem);
-  z-index: 999;
+  z-index: 1002;
   overflow-y: auto;
   user-select: none;
   top: 5rem;

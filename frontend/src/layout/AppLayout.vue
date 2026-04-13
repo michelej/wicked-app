@@ -108,6 +108,11 @@ const onMaskClick = () => {
   z-index: 1;
 }
 
+.layout-sidebar {
+  position: relative;
+  z-index: 1002;
+}
+
 .layout-main {
   flex: 1 1 auto;
   width: 100%;
@@ -120,7 +125,7 @@ const onMaskClick = () => {
 }
 
 .layout-mask {
-  z-index: 998;
+  z-index: 1001;
   position: fixed;
   top: 0;
   left: 0;
@@ -147,7 +152,7 @@ const onMaskClick = () => {
 
 .layout-wrapper.layout-overlay .layout-sidebar {
   transform: translateX(-100%);
-  z-index: 999;
+  z-index: 1002;
 }
 
 .layout-wrapper.layout-overlay.layout-overlay-active .layout-sidebar {

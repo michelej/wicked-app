@@ -111,8 +111,7 @@
               <Button
                 label="Subir fichero ING"
                 icon="pi pi-upload"
-                severity="warning"
-                outlined
+                severity="success"                
                 @click="ingInput?.click()"
                 :loading="isUploadingBank === 'ing_direct'"
               />
