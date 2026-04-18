@@ -133,7 +133,7 @@
           </div>
           <div class="preview-item">
             <span>Concepto</span>
-            <strong>{{ selectedItem.raw_concept || '-' }}</strong>
+            <strong class="preview-text-limit" :title="selectedItem.raw_concept || '-'">{{ selectedItem.raw_concept || '-' }}</strong>
           </div>
           <div class="preview-item">
             <span>Movimiento</span>
@@ -159,7 +159,15 @@
         <div class="form-row">
           <div class="form-field">
             <label>Categoria</label>
-            <Select v-model="processForm.category" :options="availableCategories" optionLabel="name" optionValue="name" class="w-full" filter />
+            <Select v-model="processForm.category" :options="availableCategories" optionLabel="displayName" optionValue="name" class="w-full" filter filterBy="name,displayName">
+              <template #option="{ option }">
+                <div class="category-option">
+                  <span v-if="option.parent_id" class="subcategory-indicator">↳</span>
+                  <i :class="normalizeIcon(option.icon)" :style="{ color: option.color }"></i>
+                  <span>{{ option.name }}</span>
+                </div>
+              </template>
+            </Select>
           </div>
           <div class="form-field">
             <label>Banco</label>
@@ -216,6 +224,13 @@ const budgetStore = useBudgetStore()
 const categoryStore = useCategoryStore()
 const { formatCurrency, formatDateTime } = useFormatters()
 
+const normalizeIcon = (icon) => {
+  if (!icon) return 'pi pi-tag'
+  if (icon.startsWith('pi pi-')) return icon
+  if (icon.startsWith('pi-')) return `pi ${icon}`
+  return `pi pi-${icon}`
+}
+
 const showProcessDialog = ref(false)
 const selectedItem = ref(null)
 const searchQuery = ref('')
@@ -271,7 +286,14 @@ const budgetOptions = computed(() => {
 })
 
 const availableCategories = computed(() => {
-  return processForm.value.type === 'income' ? categoryStore.sortedIncomeCategories : categoryStore.sortedExpenseCategories
+  const categories = processForm.value.type === 'income'
+    ? categoryStore.sortedIncomeCategories
+    : categoryStore.sortedExpenseCategories
+
+  return categories.map((category) => ({
+    ...category,
+    displayName: category.parent_id ? `↳ ${category.name}` : category.name
+  }))
 })
 
 const filteredItems = computed(() => {
@@ -547,6 +569,14 @@ const processSelected = async (importToSystem) => {
   font-size: 1.18rem;
 }
 
+.preview-text-limit {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
 .filters-card,
 .table-card {
   border-radius: 28px;
@@ -599,6 +629,23 @@ const processSelected = async (importToSystem) => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.category-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.category-option i {
+  font-size: 1rem;
+}
+
+.subcategory-indicator {
+  color: var(--text-color-secondary);
+  margin-right: 0.25rem;
+  font-weight: 600;
 }
 
 .dialog-content {
