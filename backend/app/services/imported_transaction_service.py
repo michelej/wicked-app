@@ -220,7 +220,11 @@ def parse_bbva_workbook(content: bytes, file_name: str) -> List[Dict[str, Any]]:
         if amount_value is None or amount_value == Decimal("0"):
             continue
 
-        comment_suggestion = build_comment_suggestion(mapped_row.get("Concepto"), mapped_row.get("Observaciones"))
+        comment_suggestion = build_bbva_comment_suggestion(
+            mapped_row.get("Concepto"),
+            mapped_row.get("Observaciones"),
+            mapped_row.get("F.Valor"),
+        )
         parsed_rows.append(
             {
                 "source_bank": "bbva",
@@ -529,6 +533,18 @@ def build_comment_suggestion(concept: Any, observations: Any) -> Optional[str]:
     if concept_text and observations_text:
         return f"{concept_text} | {observations_text}"
     return concept_text or observations_text
+
+
+def build_bbva_comment_suggestion(concept: Any, observations: Any, value_date: Any) -> Optional[str]:
+    base_comment = build_comment_suggestion(concept, observations)
+    parsed_value_date = parse_excel_date(value_date)
+    value_date_text = parsed_value_date.strftime("%d/%m/%Y") if parsed_value_date else sanitize_text(value_date)
+
+    if base_comment and value_date_text:
+        return f"{base_comment} | F.Valor: {value_date_text}"
+    if value_date_text:
+        return f"F.Valor: {value_date_text}"
+    return base_comment
 
 
 def suggest_payment_method(movement: Any) -> Optional[str]:

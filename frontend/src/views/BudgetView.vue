@@ -286,14 +286,17 @@
                 <div class="percentage-cell">
                   <span 
                     class="percentage-value"
-                    :class="{ 'text-red': getRemainingPercentage(data) < 0, 'text-green': getRemainingPercentage(data) >= 0 }"
+                    :class="getRemainingStateClass(data)"
                   >
                     {{ getRemainingPercentage(data).toFixed(1) }}%
                   </span>
+                  <small class="percentage-caption" :class="getRemainingStateClass(data)">
+                    {{ getRemainingStateLabel(data) }}
+                  </small>
                   <div class="mini-progress-bar">
                     <div 
                       class="mini-progress-fill"
-                      :class="getProgressClass(data)"
+                      :class="getRemainingProgressClass(data)"
                       :style="{ width: Math.min(getProgressPercentage(data), 100) + '%' }"
                     ></div>
                   </div>
@@ -1378,12 +1381,32 @@ const getRemainingPercentage = (item) => {
   return ((item.planned_amount - item.spent_amount) / item.planned_amount) * 100
 }
 
-const getProgressClass = (item) => {
-  const percentage = getProgressPercentage(item)
-  if (percentage >= 100) return 'progress-over'
-  if (percentage >= 80) return 'progress-high'
-  if (percentage >= 50) return 'progress-medium'
-  return 'progress-low'
+const getRemainingStateClass = (item) => {
+  const remainingPercentage = getRemainingPercentage(item)
+
+  if (remainingPercentage < 0) return 'remaining-negative'
+  if (Math.abs(remainingPercentage) < 0.05) return 'remaining-complete'
+  if (remainingPercentage <= 20) return 'remaining-low'
+  if (remainingPercentage <= 50) return 'remaining-medium'
+  return 'remaining-healthy'
+}
+
+const getRemainingStateLabel = (item) => {
+  const remainingPercentage = getRemainingPercentage(item)
+
+  if (remainingPercentage < 0) return 'Excedido'
+  if (Math.abs(remainingPercentage) < 0.05) return 'Cumplido'
+  return 'Restante'
+}
+
+const getRemainingProgressClass = (item) => {
+  const remainingPercentage = getRemainingPercentage(item)
+
+  if (remainingPercentage < 0) return 'progress-negative'
+  if (Math.abs(remainingPercentage) < 0.05) return 'progress-complete'
+  if (remainingPercentage <= 20) return 'progress-low'
+  if (remainingPercentage <= 50) return 'progress-medium'
+  return 'progress-healthy'
 }
 
 const isSubcategory = (categoryName) => {
@@ -2593,6 +2616,37 @@ const saveBudgetItems = async () => {
   font-size: 0.78rem;
 }
 
+.percentage-caption {
+  font-size: 0.68rem;
+  line-height: 1;
+  color: var(--text-color-secondary);
+}
+
+.percentage-value.remaining-healthy,
+.percentage-caption.remaining-healthy {
+  color: #0f8b6f;
+}
+
+.percentage-value.remaining-medium,
+.percentage-caption.remaining-medium {
+  color: #2563eb;
+}
+
+.percentage-value.remaining-low,
+.percentage-caption.remaining-low {
+  color: #d97706;
+}
+
+.percentage-value.remaining-complete,
+.percentage-caption.remaining-complete {
+  color: var(--text-color-secondary);
+}
+
+.percentage-value.remaining-negative,
+.percentage-caption.remaining-negative {
+  color: #ef4444;
+}
+
 .mini-progress-bar {
   width: 100%;
   height: 4px;
@@ -2606,7 +2660,7 @@ const saveBudgetItems = async () => {
   transition: width 0.3s ease;
 }
 
-.mini-progress-fill.progress-low {
+.mini-progress-fill.progress-healthy {
   background: #10b981;
 }
 
@@ -2614,11 +2668,15 @@ const saveBudgetItems = async () => {
   background: #3b82f6;
 }
 
-.mini-progress-fill.progress-high {
+.mini-progress-fill.progress-low {
   background: #f59e0b;
 }
 
-.mini-progress-fill.progress-over {
+.mini-progress-fill.progress-complete {
+  background: #94a3b8;
+}
+
+.mini-progress-fill.progress-negative {
   background: #ef4444;
 }
 
