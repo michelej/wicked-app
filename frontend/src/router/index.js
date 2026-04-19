@@ -19,6 +19,16 @@ const router = createRouter({
           component: () => import('@/views/BudgetManager.vue')
         },
         {
+          path: 'budgets/next-month-planner/setup',
+          name: 'next-month-planner-setup',
+          component: () => import('@/views/NextMonthPlannerSetup.vue')
+        },
+        {
+          path: 'budgets/next-month-planner/:budgetMonth',
+          name: 'next-month-planner',
+          component: () => import('@/views/NextMonthPlanner.vue')
+        },
+        {
           path: 'budgets/monthly-summary',
           name: 'monthly-budget-summary',
           component: () => import('@/views/MonthlyBudgetSummary.vue')

@@ -14,17 +14,7 @@ class BudgetService:
     async def create_budget(self, budget: BudgetCreate) -> Budget:
         """Create a new budget"""
         budget_dict = budget.model_dump()
-        
-        # Convert budget_items Decimals to floats for MongoDB
-        if "budget_items" in budget_dict:
-            converted_items = []
-            for item in budget_dict["budget_items"]:
-                converted_items.append({
-                    "category": item["category"],
-                    "planned_amount": float(item["planned_amount"]),
-                    "spent_amount": float(item.get("spent_amount", 0))
-                })
-            budget_dict["budget_items"] = converted_items
+        budget_dict = self._prepare_budget_payload(budget_dict)
         
         budget_dict["created_at"] = datetime.utcnow()
         budget_dict["updated_at"] = datetime.utcnow()
@@ -71,17 +61,7 @@ class BudgetService:
         update_data = {k: v for k, v in budget_update.model_dump(exclude_unset=True).items()}
         if not update_data:
             return await self.get_budget(budget_id)
-        
-        # Convert budget_items Decimals to floats for MongoDB
-        if "budget_items" in update_data:
-            converted_items = []
-            for item in update_data["budget_items"]:
-                converted_items.append({
-                    "category": item["category"],
-                    "planned_amount": float(item["planned_amount"]),
-                    "spent_amount": float(item.get("spent_amount", 0))
-                })
-            update_data["budget_items"] = converted_items
+        update_data = self._prepare_budget_payload(update_data)
         
         update_data["updated_at"] = datetime.utcnow()
         
@@ -95,6 +75,32 @@ class BudgetService:
             result["_id"] = str(result["_id"])
             return Budget(**result)
         return None
+
+    def _prepare_budget_payload(self, payload: dict) -> dict:
+        if "budget_items" in payload:
+            converted_items = []
+            for item in payload["budget_items"]:
+                converted_items.append({
+                    "category": item["category"],
+                    "planned_amount": float(item["planned_amount"]),
+                    "spent_amount": float(item.get("spent_amount", 0))
+                })
+            payload["budget_items"] = converted_items
+
+        planning_metadata = payload.get("planning_metadata")
+        if planning_metadata and "temporary_incomes" in planning_metadata:
+            payload["planning_metadata"] = {
+                **planning_metadata,
+                "temporary_incomes": [
+                    {
+                        "label": item["label"],
+                        "amount": float(item["amount"])
+                    }
+                    for item in planning_metadata.get("temporary_incomes", [])
+                ]
+            }
+
+        return payload
     
     async def delete_budget(self, budget_id: str) -> bool:
         """Delete a budget"""

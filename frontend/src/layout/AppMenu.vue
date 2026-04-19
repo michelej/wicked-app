@@ -42,7 +42,7 @@ const model = ref([
         label: 'Presupuestos',
         icon: 'pi pi-fw pi-wallet',
         to: '/budgets',
-        activeRouteNames: ['budgets', 'budget-detail']
+        activeRouteNames: ['budgets', 'budget-detail', 'next-month-planner-setup', 'next-month-planner']
       },
       {
         label: 'Resumen Mensual',

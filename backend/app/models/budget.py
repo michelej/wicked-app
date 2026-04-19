@@ -19,6 +19,27 @@ class BudgetItem(BaseModel):
         }
 
 
+class PlanningTemporaryIncome(BaseModel):
+    label: str = Field(..., min_length=1, max_length=120)
+    amount: Decimal = Field(..., gt=0, decimal_places=2)
+
+    class Config:
+        json_encoders = {
+            Decimal: lambda v: float(v)
+        }
+
+
+class BudgetPlanningMetadata(BaseModel):
+    planner_type: Optional[str] = Field(default=None, max_length=50)
+    counterpart_bank: Optional[BankName] = None
+    temporary_incomes: List[PlanningTemporaryIncome] = Field(default_factory=list)
+
+    class Config:
+        json_encoders = {
+            Decimal: lambda v: float(v)
+        }
+
+
 class BudgetBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     start_date: datetime
@@ -27,6 +48,7 @@ class BudgetBase(BaseModel):
     budget_items: List[BudgetItem] = Field(default_factory=list)
     status: str = Field(default="active", pattern="^(active|closed|draft)$")
     created_from_template: Optional[str] = None
+    planning_metadata: Optional[BudgetPlanningMetadata] = None
 
 
 class BudgetCreate(BudgetBase):
@@ -54,6 +76,7 @@ class BudgetUpdate(BaseModel):
     budget_month: Optional[str] = Field(None, min_length=1, max_length=20, pattern=r"^[A-Za-z]+-\d{4}$")
     budget_items: Optional[List[BudgetItem]] = None
     status: Optional[str] = Field(None, pattern="^(active|closed|draft)$")
+    planning_metadata: Optional[BudgetPlanningMetadata] = None
 
 
 class MonthlyBudgetSummary(BaseModel):
