@@ -96,6 +96,30 @@ async def update_budget(
     return await service.update_budget(budget_id, budget_update)
 
 
+@router.delete("/{budget_id}", status_code=204)
+async def delete_budget(
+    budget_id: str,
+    force: bool = Query(False, description="Force delete even if it has related transactions"),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Delete a specific budget."""
+    service = BudgetService(db)
+
+    budget = await service.get_budget(budget_id)
+    if not budget:
+        raise HTTPException(status_code=404, detail="Budget not found")
+
+    if not force and await service.has_transactions(budget_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Budget has related transactions. Delete them first or use force=true."
+        )
+
+    success = await service.delete_budget(budget_id, force=force)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to delete budget")
+
+
 @router.get("/{budget_id}", response_model=Budget)
 async def get_budget(
     budget_id: str,

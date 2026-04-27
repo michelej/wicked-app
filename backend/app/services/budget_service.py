@@ -102,8 +102,15 @@ class BudgetService:
 
         return payload
     
-    async def delete_budget(self, budget_id: str) -> bool:
-        """Delete a budget"""
+    async def delete_budget(self, budget_id: str, force: bool = False) -> bool:
+        """Delete a budget and optionally its related transactions."""
+        if not force and await self.has_transactions(budget_id):
+            return False
+
+        if force:
+            await self.db.transactions.delete_many({"budget_id": budget_id})
+            await self.db.credit_card_transactions.delete_many({"budget_id": budget_id})
+
         result = await self.collection.delete_one({"_id": ObjectId(budget_id)})
         return result.deleted_count > 0
     
@@ -219,8 +226,12 @@ class BudgetService:
     
     async def has_transactions(self, budget_id: str) -> bool:
         """Check if a budget has any transactions"""
-        count = await self.db.transactions.count_documents({"budget_id": budget_id})
-        return count > 0
+        transactions_count = await self.db.transactions.count_documents({"budget_id": budget_id}, limit=1)
+        if transactions_count > 0:
+            return True
+
+        credit_card_transactions_count = await self.db.credit_card_transactions.count_documents({"budget_id": budget_id}, limit=1)
+        return credit_card_transactions_count > 0
     
     async def recalculate_budget_items(self, budget_id: str) -> bool:
         """Recalculate spent_amount for all budget items based on transactions"""
