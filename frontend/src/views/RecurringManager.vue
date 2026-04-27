@@ -177,10 +177,10 @@
           <label for="category">Categoría *</label>
           <Select 
             id="category"
-            v-model="expenseForm.category"
+            v-model="expenseForm.category_id"
             :options="categoryStore.sortedExpenseCategories"
             optionLabel="name"
-            optionValue="name"
+            optionValue="_id"
             placeholder="Selecciona categoría"
             filter
             class="w-full"
@@ -451,7 +451,7 @@ const selectedBudget = ref(null)
 
 const expenseForm = ref({
   name: '',
-  category: '',
+  category_id: '',
   amount: 0,
   bank: '',
   payment_method: 'debit',
@@ -511,7 +511,7 @@ const closeDialog = () => {
   editingExpense.value = null
   expenseForm.value = {
     name: '',
-    category: '',
+    category_id: '',
     amount: 0,
     bank: '',
     payment_method: 'debit',
@@ -523,9 +523,30 @@ const closeDialog = () => {
   }
 }
 
+const resolveCategoryId = (categoryValue) => {
+  if (!categoryValue) {
+    return ''
+  }
+
+  const exactIdMatch = categoryStore.categories.find((category) => category._id === categoryValue)
+  if (exactIdMatch) {
+    return exactIdMatch._id
+  }
+
+  return categoryStore.categories.find((category) => category.name === categoryValue)?._id || ''
+}
+
+const resolveCategoryName = (categoryId) => {
+  if (!categoryId) {
+    return ''
+  }
+
+  return categoryStore.categories.find((category) => category._id === categoryId)?.name || ''
+}
+
 const saveExpense = async () => {
   // Validate required fields
-  if (!expenseForm.value.name || !expenseForm.value.category || 
+  if (!expenseForm.value.name || !expenseForm.value.category_id || 
       !expenseForm.value.amount || !expenseForm.value.bank) {
     toast.add({
       severity: 'warn',
@@ -559,6 +580,7 @@ const saveExpense = async () => {
 
   // Prepare data for submission
   const expenseData = { ...expenseForm.value }
+  expenseData.category = resolveCategoryName(expenseData.category_id)
   
   // Format specific_date if it's a Date object
   if (expenseData.specific_date && expenseData.specific_date instanceof Date) {
@@ -601,7 +623,7 @@ const editExpense = (expense) => {
   editingExpense.value = expense
   expenseForm.value = {
     name: expense.name,
-    category: expense.category,
+    category_id: resolveCategoryId(expense.category_id || expense.category),
     amount: expense.amount,
     bank: expense.bank,
     payment_method: expense.payment_method,

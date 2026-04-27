@@ -1,5 +1,10 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pathlib import Path
 from typing import List
+
+
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+ENV_FILE_PATH = BACKEND_ROOT / ".env"
 
 
 class Settings(BaseSettings):
@@ -18,7 +23,7 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
     
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(ENV_FILE_PATH),
         case_sensitive=True
     )
 

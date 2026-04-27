@@ -362,10 +362,10 @@
                     <div class="form-group flex-2">
                       <label>Categoría *</label>
                       <Select
-                        v-model="item.category"
+                        v-model="item.category_id"
                         :options="categoryStore.sortedExpenseCategories"
                         optionLabel="name"
-                        optionValue="name"
+                        optionValue="_id"
                         placeholder="Seleccionar categoría"
                         filter
                       >
@@ -460,7 +460,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBudgetStore } from '@/stores/budgets'
 import { useCategoryStore } from '@/stores/categories'
@@ -495,6 +495,27 @@ const normalizeIcon = (icon) => {
   if (icon.startsWith('pi pi-')) return icon
   if (icon.startsWith('pi-')) return `pi ${icon}`
   return `pi pi-${icon}`
+}
+
+const resolveCategoryId = (categoryValue) => {
+  if (!categoryValue) {
+    return ''
+  }
+
+  const exactIdMatch = categoryStore.categories.find((category) => category._id === categoryValue)
+  if (exactIdMatch) {
+    return exactIdMatch._id
+  }
+
+  return categoryStore.categories.find((category) => category.name === categoryValue)?._id || ''
+}
+
+const resolveCategoryName = (categoryId) => {
+  if (!categoryId) {
+    return ''
+  }
+
+  return categoryStore.categories.find((category) => category._id === categoryId)?.name || ''
 }
 
 const calculateTotalPlanned = (budgetItems) => {
@@ -551,15 +572,34 @@ const plannedCategoriesCount = computed(() => {
   return filteredBudgets.value.reduce((sum, budget) => sum + (budget.budget_items?.length || 0), 0)
 })
 
+const getBudgetsForTab = (tab) => {
+  if (tab === 'closed') {
+    return budgetStore.closedBudgets
+  }
+
+  if (tab === 'draft') {
+    return budgetStore.draftBudgets
+  }
+
+  return budgetStore.activeBudgets
+}
+
+const ensureTabSummariesLoaded = async (tab = currentTab.value, force = false) => {
+  const budgetIds = getBudgetsForTab(tab).map((budget) => budget._id)
+  await budgetStore.getBudgetSummaries(budgetIds, force)
+}
+
 onMounted(async () => {
   await Promise.all([
     budgetStore.fetchBudgets(),
     categoryStore.fetchCategories()
   ])
 
-  for (const budget of budgetStore.budgets) {
-    await budgetStore.getBudgetSummary(budget._id)
-  }
+  await ensureTabSummariesLoaded('active')
+})
+
+watch(currentTab, async (tab) => {
+  await ensureTabSummariesLoaded(tab)
 })
 
 const getBudgetBankBrand = (budget) => getBankBrand(budget?.bank)
@@ -616,7 +656,7 @@ const getBudgetHealth = (budget) => {
 
 const addBudgetItem = () => {
   budgetForm.value.budget_items.push({
-    category: '',
+    category_id: '',
     planned_amount: 0
   })
 }
@@ -637,7 +677,10 @@ const editBudget = (budget) => {
     start_date: new Date(budget.start_date),
     end_date: new Date(budget.end_date),
     budget_month: budget.budget_month || '',
-    budget_items: budget.budget_items || [],
+    budget_items: (budget.budget_items || []).map((item) => ({
+      ...item,
+      category_id: resolveCategoryId(item.category_id || item.category)
+    })),
     status: budget.status
   }
   showCreateDialog.value = true
@@ -672,16 +715,22 @@ const saveBudget = async () => {
   }
 
   try {
+    const normalizedBudgetItems = budgetForm.value.budget_items.map((item) => ({
+      ...item,
+      category: resolveCategoryName(item.category_id)
+    }))
+
     if (editingBudget.value) {
-      await budgetStore.updateBudget(editingBudget.value._id, {
+      const updatedBudget = await budgetStore.updateBudget(editingBudget.value._id, {
         name: budgetForm.value.name,
         bank: budgetForm.value.bank,
         start_date: budgetForm.value.start_date.toISOString(),
         end_date: budgetForm.value.end_date.toISOString(),
         budget_month: budgetForm.value.budget_month,
         status: budgetForm.value.status,
-        budget_items: budgetForm.value.budget_items
+        budget_items: normalizedBudgetItems
       })
+      await budgetStore.getBudgetSummaries([updatedBudget._id], true)
       toast.add({
         severity: 'success',
         summary: 'Presupuesto actualizado',
@@ -689,15 +738,18 @@ const saveBudget = async () => {
         life: 3000
       })
     } else {
-      await budgetStore.createBudget({
+      const createdBudget = await budgetStore.createBudget({
         name: budgetForm.value.name,
         bank: budgetForm.value.bank,
         start_date: budgetForm.value.start_date.toISOString(),
         end_date: budgetForm.value.end_date.toISOString(),
         budget_month: budgetForm.value.budget_month,
         status: budgetForm.value.status,
-        budget_items: budgetForm.value.budget_items
+        budget_items: normalizedBudgetItems
       })
+      if (createdBudget.status === currentTab.value) {
+        await budgetStore.getBudgetSummaries([createdBudget._id], true)
+      }
       toast.add({
         severity: 'success',
         summary: 'Presupuesto creado',
@@ -724,6 +776,7 @@ const toggleBudgetStatus = async (budget) => {
     await budgetStore.updateBudget(budget._id, {
       status: nextStatus
     })
+    await ensureTabSummariesLoaded(currentTab.value)
 
     toast.add({
       severity: 'success',
@@ -749,6 +802,7 @@ const confirmDeleteBudget = (budget) => {
 const deleteBudget = async () => {
   try {
     await budgetStore.deleteBudget(budgetToDelete.value._id)
+    await ensureTabSummariesLoaded(currentTab.value)
     toast.add({
       severity: 'success',
       summary: 'Presupuesto eliminado',

@@ -159,7 +159,7 @@
         <div class="form-row">
           <div class="form-field">
             <label>Categoria</label>
-            <Select v-model="processForm.category" :options="availableCategories" optionLabel="displayName" optionValue="name" class="w-full" filter filterBy="name,displayName">
+            <Select v-model="processForm.category_id" :options="availableCategories" optionLabel="displayName" optionValue="_id" class="w-full" filter filterBy="name,displayName">
               <template #option="{ option }">
                 <div class="category-option">
                   <span v-if="option.parent_id" class="subcategory-indicator">↳</span>
@@ -240,7 +240,7 @@ const bankFilter = ref('all')
 const processForm = ref({
   type: 'expense',
   budget_id: null,
-  category: null,
+  category_id: null,
   bank: 'BBVA',
   payment_method: 'debit',
   timestamp: new Date(),
@@ -391,6 +391,27 @@ const getCategoriesForImportedType = (type) => {
     : categoryStore.sortedExpenseCategories
 }
 
+const resolveCategoryId = (categoryValue) => {
+  if (!categoryValue) {
+    return null
+  }
+
+  const exactIdMatch = categoryStore.categories.find((category) => category._id === categoryValue)
+  if (exactIdMatch) {
+    return exactIdMatch._id
+  }
+
+  return categoryStore.categories.find((category) => category.name === categoryValue)?._id || null
+}
+
+const resolveCategoryName = (categoryId) => {
+  if (!categoryId) {
+    return null
+  }
+
+  return categoryStore.categories.find((category) => category._id === categoryId)?.name || null
+}
+
 const findMatchingCategory = (item) => {
   const resolvedBank = item?.source_bank ? bankLabel(item.source_bank) : null
 
@@ -418,7 +439,7 @@ const openProcessDialog = (item) => {
   processForm.value = {
     type: item.type,
     budget_id: findMatchingBudgetId(item),
-    category: findMatchingCategory(item),
+    category_id: resolveCategoryId(findMatchingCategory(item)),
     bank: bankLabel(item.source_bank),
     payment_method: item.payment_method_suggestion || 'debit',
     timestamp: item.suggested_timestamp ? new Date(item.suggested_timestamp) : new Date(),
@@ -433,7 +454,7 @@ const processSelected = async (importToSystem) => {
     return
   }
 
-  if (importToSystem && (!processForm.value.budget_id || !processForm.value.category || !processForm.value.payment_method)) {
+  if (importToSystem && (!processForm.value.budget_id || !processForm.value.category_id || !processForm.value.payment_method)) {
     toast.add({
       severity: 'warn',
       summary: 'Campos requeridos',
@@ -448,7 +469,8 @@ const processSelected = async (importToSystem) => {
       import_to_system: importToSystem,
       type: processForm.value.type,
       budget_id: processForm.value.budget_id,
-      category: processForm.value.category,
+      category_id: processForm.value.category_id,
+      category: resolveCategoryName(processForm.value.category_id),
       bank: processForm.value.bank,
       payment_method: processForm.value.payment_method,
       comment: processForm.value.comment,

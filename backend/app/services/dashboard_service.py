@@ -4,6 +4,7 @@ from typing import List, Dict, Any
 from decimal import Decimal
 from collections import defaultdict
 from app.utils.date_helpers import get_date_range
+from app.utils.category_references import load_category_reference_maps, resolve_category_document
 
 
 class DashboardService:
@@ -61,10 +62,14 @@ class DashboardService:
         """
         Get expense summary grouped by category for a budget.
         """
+        category_maps = await load_category_reference_maps(self.db)
         pipeline = [
             {"$match": {"budget_id": budget_id, "type": "expense"}},
             {"$group": {
-                "_id": "$category",
+                "_id": {
+                    "category_id": "$category_id",
+                    "category": "$category",
+                },
                 "total": {"$sum": "$amount"},
                 "count": {"$sum": 1},
                 "charged": {"$sum": {"$cond": ["$is_charged", "$amount", 0]}},
@@ -75,8 +80,14 @@ class DashboardService:
         
         results = []
         async for result in self.db.transactions.aggregate(pipeline):
+            category_document = resolve_category_document(
+                category_maps,
+                category_id=result["_id"].get("category_id"),
+                category_name=result["_id"].get("category"),
+            )
             results.append({
-                "category": result["_id"],
+                "category_id": category_document["_id"] if category_document else result["_id"].get("category_id"),
+                "category": category_document["name"] if category_document else result["_id"].get("category"),
                 "total": float(result["total"]),
                 "count": result["count"],
                 "charged": float(result["charged"]),
@@ -119,6 +130,7 @@ class DashboardService:
         """
         now = datetime.utcnow()
         current_day = now.day
+        category_maps = await load_category_reference_maps(self.db)
         
         # Get all active recurring expenses
         cursor = self.db.recurring_expenses.find({"is_active": True})
@@ -130,10 +142,16 @@ class DashboardService:
             # Simple calculation: if day is coming up this month
             if day_of_month >= current_day and day_of_month <= (current_day + days_ahead):
                 days_until = day_of_month - current_day
+                category_document = resolve_category_document(
+                    category_maps,
+                    category_id=expense.get("category_id"),
+                    category_name=expense.get("category"),
+                )
                 upcoming.append({
                     "id": str(expense["_id"]),
                     "name": expense["name"],
-                    "category": expense["category"],
+                    "category_id": category_document["_id"] if category_document else expense.get("category_id"),
+                    "category": category_document["name"] if category_document else expense.get("category"),
                     "amount": float(expense["amount"]),
                     "day_of_month": day_of_month,
                     "days_until": days_until,

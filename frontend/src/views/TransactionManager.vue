@@ -414,10 +414,10 @@
           <label for="category">Categoría *</label>
           <Select
             id="category"
-            v-model="transactionForm.category"
+            v-model="transactionForm.category_id"
             :options="availableCategories"
-            optionLabel="name"
-            optionValue="name"
+            optionLabel="displayName"
+            optionValue="_id"
             placeholder="Selecciona categoría"
             filter
             class="w-full"
@@ -672,7 +672,7 @@ const transactionForm = ref({
   budget_id: '',
   type: 'expense',
   amount: 0,
-  category: '',
+  category_id: '',
   bank: '',
   payment_method: 'debit',
   timestamp: new Date(),
@@ -737,14 +737,38 @@ const categoryOptions = computed(() => [
 ])
 
 const availableCategories = computed(() => {
-  if (transactionForm.value.type === 'income') {
-    return categoryStore.sortedIncomeCategories
-  }
-  if (transactionForm.value.type === 'expense') {
-    return categoryStore.sortedExpenseCategories
-  }
-  return categoryStore.sortedActiveCategories
+  const categories = transactionForm.value.type === 'income'
+    ? categoryStore.sortedIncomeCategories
+    : transactionForm.value.type === 'expense'
+      ? categoryStore.sortedExpenseCategories
+      : categoryStore.sortedActiveCategories
+
+  return categories.map((category) => ({
+    ...category,
+    displayName: category.parent_id ? `↳ ${category.name}` : category.name
+  }))
 })
+
+const resolveCategoryId = (categoryValue) => {
+  if (!categoryValue) {
+    return ''
+  }
+
+  const exactIdMatch = categoryStore.categories.find((category) => category._id === categoryValue)
+  if (exactIdMatch) {
+    return exactIdMatch._id
+  }
+
+  return categoryStore.categories.find((category) => category.name === categoryValue)?._id || ''
+}
+
+const resolveCategoryName = (categoryId) => {
+  if (!categoryId) {
+    return ''
+  }
+
+  return categoryStore.categories.find((category) => category._id === categoryId)?.name || ''
+}
 
 const categoryParentLookup = computed(() => {
   const categoryById = new Map(categoryStore.categories.map((category) => [category._id, category]))
@@ -984,7 +1008,7 @@ const closeDialog = () => {
     budget_id: '',
     type: 'expense',
     amount: 0,
-    category: '',
+    category_id: '',
     bank: '',
     payment_method: 'debit',
     timestamp: new Date(),
@@ -994,7 +1018,7 @@ const closeDialog = () => {
 }
 
 const saveTransaction = async () => {
-  if (!transactionForm.value.budget_id || !transactionForm.value.amount || !transactionForm.value.category || !transactionForm.value.bank) {
+  if (!transactionForm.value.budget_id || !transactionForm.value.amount || !transactionForm.value.category_id || !transactionForm.value.bank) {
     toast.add({
       severity: 'warn',
       summary: 'Campos requeridos',
@@ -1009,7 +1033,8 @@ const saveTransaction = async () => {
       budget_id: transactionForm.value.budget_id,
       type: transactionForm.value.type,
       amount: transactionForm.value.amount,
-      category: transactionForm.value.category,
+      category_id: transactionForm.value.category_id,
+      category: resolveCategoryName(transactionForm.value.category_id),
       bank: transactionForm.value.bank,
       payment_method: transactionForm.value.payment_method,
       timestamp: transactionForm.value.timestamp.toISOString(),
@@ -1053,7 +1078,7 @@ const editTransaction = (transaction) => {
     budget_id: transaction.budget_id,
     type: transaction.type,
     amount: transaction.amount,
-    category: transaction.category,
+    category_id: resolveCategoryId(transaction.category_id || transaction.category),
     bank: transaction.bank,
     payment_method: transaction.payment_method,
     timestamp: new Date(transaction.timestamp),

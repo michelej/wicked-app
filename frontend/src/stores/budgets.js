@@ -9,6 +9,7 @@ export const useBudgetStore = defineStore('budgets', () => {
   const currentSummary = ref(null)
   const budgetSummaries = ref({}) // Store summaries by budget ID
   const loading = ref(false)
+  const summariesLoading = ref(false)
   const error = ref(null)
 
   const sortBudgetsByStartDate = (items = []) => {
@@ -89,6 +90,31 @@ export const useBudgetStore = defineStore('budgets', () => {
     }
   }
 
+  async function getBudgetSummaries(ids = [], force = false) {
+    const targetIds = [...new Set(ids.filter(Boolean))].filter((id) => force || !budgetSummaries.value[id])
+    if (targetIds.length === 0) {
+      return budgetSummaries.value
+    }
+
+    summariesLoading.value = true
+    error.value = null
+
+    try {
+      const responses = await Promise.all(targetIds.map((id) => budgetService.getBudgetSummary(id)))
+
+      responses.forEach((response, index) => {
+        budgetSummaries.value[targetIds[index]] = response.data
+      })
+
+      return budgetSummaries.value
+    } catch (err) {
+      error.value = err.response?.data?.detail || err.message
+      throw err
+    } finally {
+      summariesLoading.value = false
+    }
+  }
+
   async function createBudget(budget) {
     loading.value = true
     error.value = null
@@ -132,6 +158,7 @@ export const useBudgetStore = defineStore('budgets', () => {
     try {
       await budgetService.deleteBudget(id, force)
       budgets.value = budgets.value.filter(b => b._id !== id)
+      delete budgetSummaries.value[id]
       if (currentBudget.value && currentBudget.value._id === id) {
         currentBudget.value = null
       }
@@ -159,6 +186,7 @@ export const useBudgetStore = defineStore('budgets', () => {
     currentSummary,
     budgetSummaries,
     loading,
+    summariesLoading,
     error,
     // Getters
     activeBudgets,
@@ -169,6 +197,7 @@ export const useBudgetStore = defineStore('budgets', () => {
     fetchActiveBudgets,
     getBudget,
     getBudgetSummary,
+    getBudgetSummaries,
     createBudget,
     updateBudget,
     deleteBudget,

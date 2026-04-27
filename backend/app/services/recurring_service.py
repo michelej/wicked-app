@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import List, Optional
 from app.models.recurring_expense import RecurringExpense, RecurringExpenseCreate, RecurringExpenseUpdate
 from app.models.transaction import TransactionCreate
+from app.utils.category_references import enrich_category_reference, load_category_reference_maps, require_category_document
 from app.utils.date_helpers import calculate_charge_date
 
 
@@ -11,12 +12,32 @@ class RecurringExpenseService:
     def __init__(self, db: AsyncIOMotorDatabase):
         self.db = db
         self.collection = db.recurring_expenses
+
+    async def _serialize_recurring_expense_document(self, expense: dict) -> RecurringExpense:
+        category_maps = await load_category_reference_maps(self.db)
+        enriched_expense = enrich_category_reference({**expense, "_id": str(expense["_id"])}, category_maps)
+        return RecurringExpense(**enriched_expense)
+
+    async def _serialize_recurring_expense_documents(self, expenses: List[dict]) -> List[RecurringExpense]:
+        category_maps = await load_category_reference_maps(self.db)
+        return [
+            RecurringExpense(**enrich_category_reference({**expense, "_id": str(expense["_id"])}, category_maps))
+            for expense in expenses
+        ]
     
     async def create_recurring_expense(self, expense: RecurringExpenseCreate) -> RecurringExpense:
         """Create a new recurring expense"""
         expense_dict = expense.model_dump()
+        category_document = require_category_document(
+            await load_category_reference_maps(self.db),
+            category_id=expense.category_id,
+            category_name=expense.category,
+            error_message="Category not found for recurring expense",
+        )
         # Convert Decimal to float for MongoDB storage
         expense_dict["amount"] = float(expense_dict["amount"])
+        expense_dict["category_id"] = category_document["_id"]
+        expense_dict.pop("category", None)
         # Convert date to ISO string for MongoDB if specific_date exists
         if expense_dict.get("specific_date"):
             expense_dict["specific_date"] = expense_dict["specific_date"].isoformat()
@@ -25,6 +46,7 @@ class RecurringExpenseService:
         
         result = await self.collection.insert_one(expense_dict)
         expense_dict["_id"] = str(result.inserted_id)
+        expense_dict["category"] = category_document["name"]
         
         return RecurringExpense(**expense_dict)
     
@@ -32,8 +54,7 @@ class RecurringExpenseService:
         """Get a recurring expense by ID"""
         expense = await self.collection.find_one({"_id": ObjectId(expense_id)})
         if expense:
-            expense["_id"] = str(expense["_id"])
-            return RecurringExpense(**expense)
+            return await self._serialize_recurring_expense_document(expense)
         return None
     
     async def get_recurring_expenses(
@@ -54,10 +75,9 @@ class RecurringExpenseService:
         expenses = []
         
         async for expense in cursor:
-            expense["_id"] = str(expense["_id"])
-            expenses.append(RecurringExpense(**expense))
-        
-        return expenses
+            expenses.append(expense)
+
+        return await self._serialize_recurring_expense_documents(expenses)
     
     async def get_active_recurring_expenses(self) -> List[RecurringExpense]:
         """Get all active recurring expenses"""
@@ -76,6 +96,16 @@ class RecurringExpenseService:
         # Convert Decimal to float if amount is being updated
         if "amount" in update_data:
             update_data["amount"] = float(update_data["amount"])
+
+        if "category_id" in update_data or "category" in update_data:
+            category_document = require_category_document(
+                await load_category_reference_maps(self.db),
+                category_id=update_data.get("category_id"),
+                category_name=update_data.get("category"),
+                error_message="Category not found for recurring expense",
+            )
+            update_data["category_id"] = category_document["_id"]
+            update_data.pop("category", None)
         
         # Convert date to ISO string for MongoDB if specific_date is being updated
         if "specific_date" in update_data and update_data["specific_date"]:
@@ -90,8 +120,7 @@ class RecurringExpenseService:
         )
         
         if result:
-            result["_id"] = str(result["_id"])
-            return RecurringExpense(**result)
+            return await self._serialize_recurring_expense_document(result)
         return None
     
     async def delete_recurring_expense(self, expense_id: str) -> bool:
@@ -130,6 +159,7 @@ class RecurringExpenseService:
                 budget_id=budget_id,
                 type="expense",
                 amount=expense.amount,
+                category_id=expense.category_id,
                 category=expense.category,
                 bank=expense.bank,
                 payment_method=expense.payment_method,

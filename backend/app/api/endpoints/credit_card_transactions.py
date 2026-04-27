@@ -21,7 +21,10 @@ async def create_credit_card_transaction(
     db: AsyncIOMotorDatabase = Depends(get_database),
 ):
     service = CreditCardTransactionService(db)
-    return await service.create_transaction(transaction)
+    try:
+        return await service.create_transaction(transaction)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
 
 @router.get("", response_model=List[CreditCardTransaction])
@@ -30,6 +33,7 @@ async def get_credit_card_transactions(
     credit_card: Optional[str] = None,
     type_filter: Optional[str] = Query(None, pattern="^(income|expense)$"),
     category: Optional[str] = None,
+    category_id: Optional[str] = None,
     is_charged: Optional[bool] = None,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
@@ -43,6 +47,7 @@ async def get_credit_card_transactions(
         credit_card,
         type_filter,
         category,
+        category_id,
         is_charged,
         start_date,
         end_date,
@@ -70,7 +75,11 @@ async def update_credit_card_transaction(
     db: AsyncIOMotorDatabase = Depends(get_database),
 ):
     service = CreditCardTransactionService(db)
-    transaction = await service.update_transaction(transaction_id, transaction_update)
+    try:
+        transaction = await service.update_transaction(transaction_id, transaction_update)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
     if not transaction:
         raise HTTPException(status_code=404, detail="Credit card transaction not found")
     return transaction
@@ -111,4 +120,7 @@ async def bulk_create_credit_card_transactions(
     db: AsyncIOMotorDatabase = Depends(get_database),
 ):
     service = CreditCardTransactionService(db)
-    return await service.bulk_create_transactions(transactions)
+    try:
+        return await service.bulk_create_transactions(transactions)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error

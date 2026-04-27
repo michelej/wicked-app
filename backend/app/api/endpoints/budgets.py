@@ -19,8 +19,11 @@ async def create_budget(
     # Validate dates
     if budget.start_date >= budget.end_date:
         raise HTTPException(status_code=400, detail="Start date must be before end date")
-    
-    return await service.create_budget(budget)
+
+    try:
+        return await service.create_budget(budget)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
 
 @router.get("", response_model=List[Budget])
@@ -92,8 +95,11 @@ async def update_budget(
     end_date = budget_update.end_date or budget.end_date
     if start_date >= end_date:
         raise HTTPException(status_code=400, detail="Start date must be before end date")
-    
-    return await service.update_budget(budget_id, budget_update)
+
+    try:
+        return await service.update_budget(budget_id, budget_update)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
 
 @router.delete("/{budget_id}", status_code=204)

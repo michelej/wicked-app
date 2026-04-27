@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List, Dict, Union, Literal
 from datetime import datetime
 from decimal import Decimal
@@ -9,9 +9,17 @@ BankName = Literal["BBVA", "ING Direct"]
 
 class BudgetItem(BaseModel):
     """Individual budget item for a specific category"""
-    category: str = Field(..., min_length=1, max_length=100)
+    category_id: Optional[str] = Field(default=None, min_length=1)
+    category: Optional[str] = Field(default=None, min_length=1, max_length=100)
     planned_amount: Decimal = Field(..., gt=0, decimal_places=2)
     spent_amount: Decimal = Field(default=Decimal(0), ge=0, decimal_places=2)
+
+    @model_validator(mode="after")
+    def validate_category_reference(self):
+        if self.category_id or self.category:
+            return self
+
+        raise ValueError("category_id or category is required")
     
     class Config:
         json_encoders = {

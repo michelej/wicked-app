@@ -69,72 +69,84 @@
       />
     </div>
 
-    <!-- Categories Grid -->
-    <div v-else class="categories-grid">
-      <Card 
-        v-for="category in displayedCategories" 
+    <!-- Categories Table -->
+    <div v-else class="categories-table">
+      <div class="categories-table-header">
+        <span>Categoría</span>
+        <span>Padre</span>
+        <span>Tipo</span>
+        <span>Estado</span>
+        <span class="actions-column">Acciones</span>
+      </div>
+
+      <div
+        v-for="category in displayedCategories"
         :key="category._id"
-        class="category-card"
-        :class="{ 'subcategory-card': category.parent_id }"
+        class="category-row"
+        :class="{ 'subcategory-row': category.parent_id }"
       >
-        <template #content>
+        <div class="category-primary-cell" :class="{ 'subcategory-primary-cell': category.parent_id }">
           <div class="category-content">
-            <div 
+            <div
               class="category-icon"
               :style="{ backgroundColor: category.color }"
             >
               <i :class="normalizeIcon(category.icon)"></i>
             </div>
             <div class="category-info">
-              <div class="category-name-row">                
+              <div class="category-name-row">
+                <span v-if="category.parent_id" class="subcategory-indicator">↳</span>
                 <h3>{{ category.name }}</h3>
-              </div>
-              <div v-if="category.parent_id" class="parent-category-line">
-                {{ getParentName(category) }}
-              </div>
-              <div class="category-meta">
-                <Tag 
-                  :value="formatCategoryType(category.type)"
-                  :severity="getCategoryTypeSeverity(category.type)"
-                />
-                <Tag 
-                  :value="category.is_active ? 'Activa' : 'Inactiva'"
-                  :severity="category.is_active ? 'success' : 'danger'"
-                />
               </div>
             </div>
           </div>
-        </template>
+        </div>
 
-        <template #footer>
-          <div class="category-actions">
-            <Button 
-              icon="pi pi-pencil"
-              text
-              rounded
-              severity="secondary"
-              v-tooltip.top="'Editar'"
-              @click.stop="editCategory(category)"
-            />
-            <Button 
-              :icon="category.is_active ? 'pi pi-times' : 'pi pi-check'"
-              text
-              rounded
-              :severity="category.is_active ? 'warning' : 'success'"
-              v-tooltip.top="category.is_active ? 'Desactivar' : 'Activar'"
-              @click.stop="toggleActive(category)"
-            />
-            <Button 
-              icon="pi pi-trash"
-              text
-              rounded
-              severity="danger"
-              v-tooltip.top="'Eliminar'"
-              @click.stop="confirmDelete(category)"
-            />
-          </div>
-        </template>
-      </Card>
+        <div class="category-secondary-cell parent-cell">
+          <span>{{ category.parent_id ? getParentName(category) : 'Categoría padre' }}</span>
+        </div>
+
+        <div class="category-secondary-cell">
+          <Tag
+            :value="formatCategoryType(category.type)"
+            :severity="getCategoryTypeSeverity(category.type)"
+          />
+        </div>
+
+        <div class="category-secondary-cell">
+          <Tag
+            :value="category.is_active ? 'Activa' : 'Inactiva'"
+            :severity="category.is_active ? 'success' : 'danger'"
+          />
+        </div>
+
+        <div class="category-actions">
+          <Button
+            icon="pi pi-pencil"
+            text
+            rounded
+            severity="secondary"
+            v-tooltip.top="'Editar'"
+            @click.stop="editCategory(category)"
+          />
+          <Button
+            :icon="category.is_active ? 'pi pi-times' : 'pi pi-check'"
+            text
+            rounded
+            :severity="category.is_active ? 'warning' : 'success'"
+            v-tooltip.top="category.is_active ? 'Desactivar' : 'Activar'"
+            @click.stop="toggleActive(category)"
+          />
+          <Button
+            icon="pi pi-trash"
+            text
+            rounded
+            severity="danger"
+            v-tooltip.top="'Eliminar'"
+            @click.stop="confirmDelete(category)"
+          />
+        </div>
+      </div>
     </div>
 
     <!-- Create/Edit Dialog -->
@@ -767,73 +779,106 @@ const getParentName = (category) => {
   color: #dc2626;
 }
 
-/* Categories Grid */
-.categories-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
-.category-card {
+/* Categories Table */
+.categories-table {
   border: 1px solid var(--surface-border);
-  border-radius: 16px;
+  border-radius: 18px;
   overflow: hidden;
-  transition: all 0.3s ease;
+  background: var(--surface-card);
 }
 
-.category-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: var(--primary-color);
+.categories-table-header,
+.category-row {
+  display: grid;
+  grid-template-columns: minmax(280px, 2.2fr) minmax(160px, 1.2fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr) auto;
+  gap: 1rem;
+  align-items: center;
 }
 
-.subcategory-card {
-  margin-left: 2rem;
-  border-left: 3px solid var(--primary-color);
+.categories-table-header {
+  padding: 0.85rem 1.1rem;
   background: var(--surface-ground);
+  border-bottom: 1px solid var(--surface-border);
+  color: var(--text-color-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.subcategory-card:hover {
-  border-left-color: var(--primary-color);
+.category-row {
+  padding: 0.95rem 1.1rem;
+  border-bottom: 1px solid var(--surface-border);
+  background: #ffffff;
+  transition: background-color 0.2s ease;
+}
+
+.category-row:last-child {
+  border-bottom: 0;
+}
+
+.category-row:hover {
+  background: color-mix(in srgb, var(--surface-hover) 72%, white);
+}
+
+.subcategory-row {
+  background: #f5f6f8;
+}
+
+.subcategory-row:hover {
+  background: #eef0f3;
 }
 
 .category-content {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
-  padding: 0.5rem 0;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.category-primary-cell {
+  min-width: 0;
+}
+
+.subcategory-primary-cell {
+  padding-left: 1.75rem;
+}
+
+.category-secondary-cell {
+  min-width: 0;
+}
+
+.category-secondary-cell span {
+  color: var(--text-color-secondary);
+  font-size: 0.92rem;
+}
+
+.parent-cell {
+  font-weight: 500;
 }
 
 .category-name-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .subcategory-indicator {
   color: var(--primary-color);
-  font-size: 1.25rem;
-  font-weight: bold;
-  margin-right: 0.25rem;
-}
-
-.parent-category-line {
   font-size: 1rem;
-  color: var(--text-color-secondary);
-  font-weight: 500;
-  margin-top: 0.25rem;
-  margin-bottom: 0.25rem;
   font-weight: bold;
+  flex-shrink: 0;
 }
 
 .category-icon {
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.75rem;
+  font-size: 1.35rem;
   color: white;
   flex-shrink: 0;
 }
@@ -844,26 +889,23 @@ const getParentName = (category) => {
 }
 
 .category-info h3 {
-  font-size: 1.125rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 650;
   color: var(--text-color);
-  margin: 0 0 0.5rem 0;
+  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.category-meta {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
 .category-actions {
   display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-  padding-bottom: 1rem;
+  gap: 0.25rem;
+  justify-content: flex-end;
+}
+
+.actions-column {
+  text-align: right;
 }
 
 /* Dialog */
@@ -1023,8 +1065,23 @@ const getParentName = (category) => {
     align-items: stretch;
   }
 
-  .categories-grid {
+  .categories-table-header {
+    display: none;
+  }
+
+  .category-row {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .category-actions,
+  .actions-column {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .subcategory-primary-cell {
+    padding-left: 1rem;
   }
 
   .color-picker {

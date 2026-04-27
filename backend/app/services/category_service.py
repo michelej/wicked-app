@@ -76,12 +76,26 @@ class CategoryService:
         result = await self.collection.delete_one({"_id": ObjectId(category_id)})
         return result.deleted_count > 0
     
-    async def is_category_in_use(self, category_name: str) -> bool:
-        """Check if a category is being used in transactions or recurring expenses"""
-        transactions_count = await self.db.transactions.count_documents({"category": category_name})
-        credit_card_transactions_count = await self.db.credit_card_transactions.count_documents({"category": category_name})
-        recurring_count = await self.db.recurring_expenses.count_documents({"category": category_name})
-        return transactions_count > 0 or credit_card_transactions_count > 0 or recurring_count > 0
+    async def is_category_in_use(self, category_id: str, category_name: Optional[str] = None) -> bool:
+        """Check if a category is being used in transactions, recurring expenses, or budgets."""
+        category_query = {"$or": [{"category_id": category_id}]}
+        budget_items_query = {"budget_items.category_id": category_id}
+
+        if category_name:
+            category_query["$or"].append({"category": category_name})
+            budget_items_query = {
+                "$or": [
+                    {"budget_items.category_id": category_id},
+                    {"budget_items.category": category_name},
+                ]
+            }
+
+        transactions_count = await self.db.transactions.count_documents(category_query, limit=1)
+        credit_card_transactions_count = await self.db.credit_card_transactions.count_documents(category_query, limit=1)
+        recurring_count = await self.db.recurring_expenses.count_documents(category_query, limit=1)
+        budgets_count = await self.db.budgets.count_documents(budget_items_query, limit=1)
+
+        return any(count > 0 for count in [transactions_count, credit_card_transactions_count, recurring_count, budgets_count])
     
     async def get_parent_categories(
         self, 

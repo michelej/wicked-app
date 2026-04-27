@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class CreditCardTransactionBase(BaseModel):
@@ -10,12 +10,20 @@ class CreditCardTransactionBase(BaseModel):
     credit_card: str = Field(..., min_length=1, max_length=100)
     type: Literal["income", "expense"]
     amount: Decimal = Field(..., gt=0, decimal_places=2)
-    category: str = Field(..., min_length=1, max_length=100)
+    category_id: Optional[str] = Field(default=None, min_length=1)
+    category: Optional[str] = Field(default=None, min_length=1, max_length=100)
     bank: Optional[str] = Field(None, max_length=100)
     payment_method: Literal["credit"] = "credit"
     comment: Optional[str] = Field(None, max_length=500)
     timestamp: datetime
     is_charged: bool = False
+
+    @model_validator(mode="after")
+    def validate_category_reference(self):
+        if self.category_id or self.category:
+            return self
+
+        raise ValueError("category_id or category is required")
 
 
 class CreditCardTransactionCreate(CreditCardTransactionBase):
@@ -27,6 +35,7 @@ class CreditCardTransactionUpdate(BaseModel):
     credit_card: Optional[str] = Field(None, min_length=1, max_length=100)
     type: Optional[Literal["income", "expense"]] = None
     amount: Optional[Decimal] = Field(None, gt=0, decimal_places=2)
+    category_id: Optional[str] = Field(None, min_length=1)
     category: Optional[str] = Field(None, min_length=1, max_length=100)
     bank: Optional[str] = Field(None, max_length=100)
     payment_method: Optional[Literal["credit"]] = None
@@ -50,6 +59,7 @@ class CreditCardTransaction(CreditCardTransactionBase):
                 "credit_card": "ING Direct",
                 "type": "expense",
                 "amount": 89.99,
+                "category_id": "507f1f77bcf86cd799439099",
                 "category": "Supermercado",
                 "bank": "ING Direct",
                 "payment_method": "credit",

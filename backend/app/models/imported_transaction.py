@@ -26,6 +26,7 @@ class ImportedTransactionBase(BaseModel):
     status: str = Field(default="pending", pattern="^(pending|processed_imported|processed_skipped)$")
     processed_transaction_id: Optional[str] = None
     processed_budget_id: Optional[str] = None
+    processed_category_id: Optional[str] = None
     processed_category: Optional[str] = Field(default=None, max_length=100)
     processed_bank: Optional[str] = Field(default=None, max_length=100)
     processed_payment_method: Optional[str] = Field(default=None, pattern="^(cash|credit|debit)$")
@@ -50,6 +51,7 @@ class ImportedTransaction(ImportedTransactionBase):
 class ImportedTransactionProcess(BaseModel):
     import_to_system: bool = True
     budget_id: Optional[str] = Field(default=None, min_length=1)
+    category_id: Optional[str] = Field(default=None, min_length=1)
     category: Optional[str] = Field(default=None, min_length=1, max_length=100)
     bank: Optional[str] = Field(default=None, max_length=100)
     payment_method: Optional[str] = Field(default=None, pattern="^(cash|credit|debit)$")

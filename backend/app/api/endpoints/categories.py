@@ -82,7 +82,7 @@ async def delete_category(
     
     # Check if category is in use
     if not force:
-        in_use = await service.is_category_in_use(category.name)
+        in_use = await service.is_category_in_use(category_id, category.name)
         if in_use:
             raise HTTPException(
                 status_code=400, 

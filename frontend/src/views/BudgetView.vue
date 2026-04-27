@@ -229,10 +229,10 @@
                 </div>
                 <Select
                   v-else
-                  v-model="data.category"
+                  v-model="data.category_id"
                   :options="categoryStore.sortedExpenseCategories"
                   optionLabel="name"
-                  optionValue="name"
+                  optionValue="_id"
                   placeholder="Seleccionar categoría"
                   filter
                   class="w-full"
@@ -689,10 +689,10 @@
           <label for="category">Categoría *</label>
           <Select 
             id="category"
-            v-model="transactionForm.category"
+            v-model="transactionForm.category_id"
             :options="availableCategories"
-            optionLabel="name"
-            optionValue="name"
+            optionLabel="displayName"
+            optionValue="_id"
             placeholder="Selecciona categoría"
             filter
             class="w-full"
@@ -940,7 +940,7 @@ const budgetBankOptions = BUDGET_BANK_OPTIONS
 const createDefaultTransactionForm = () => ({
   type: 'expense',
   amount: 0,
-  category: '',
+  category_id: '',
   bank: budget.value?.bank || '',
   payment_method: 'debit',
   timestamp: new Date(),
@@ -964,13 +964,38 @@ const paymentMethodOptions = [
 
 // Computed
 const availableCategories = computed(() => {
-  if (transactionForm.value.type === 'income') {
-    return categoryStore.sortedIncomeCategories
-  } else if (transactionForm.value.type === 'expense') {
-    return categoryStore.sortedExpenseCategories
-  }
-  return categoryStore.sortedActiveCategories
+  const categories = transactionForm.value.type === 'income'
+    ? categoryStore.sortedIncomeCategories
+    : transactionForm.value.type === 'expense'
+      ? categoryStore.sortedExpenseCategories
+      : categoryStore.sortedActiveCategories
+
+  return categories.map((category) => ({
+    ...category,
+    displayName: category.parent_id ? `↳ ${category.name}` : category.name
+  }))
 })
+
+const resolveCategoryId = (categoryValue) => {
+  if (!categoryValue) {
+    return ''
+  }
+
+  const exactIdMatch = categoryStore.categories.find((category) => category._id === categoryValue)
+  if (exactIdMatch) {
+    return exactIdMatch._id
+  }
+
+  return categoryStore.categories.find((category) => category.name === categoryValue)?._id || ''
+}
+
+const resolveCategoryName = (categoryId) => {
+  if (!categoryId) {
+    return ''
+  }
+
+  return categoryStore.categories.find((category) => category._id === categoryId)?.name || ''
+}
 
 const hasBudgetItems = computed(() => {
   return Array.isArray(summary.value.budget_items) && summary.value.budget_items.length > 0
@@ -1440,7 +1465,7 @@ const closeTransactionDialog = () => {
 }
 
 const saveTransaction = async () => {
-  if (!transactionForm.value.amount || !transactionForm.value.category || !transactionForm.value.bank) {
+  if (!transactionForm.value.amount || !transactionForm.value.category_id || !transactionForm.value.bank) {
     toast.add({
       severity: 'warn',
       summary: 'Campos requeridos',
@@ -1455,7 +1480,8 @@ const saveTransaction = async () => {
       budget_id: budgetId.value,
       type: transactionForm.value.type,
       amount: transactionForm.value.amount,
-      category: transactionForm.value.category,
+      category_id: transactionForm.value.category_id,
+      category: resolveCategoryName(transactionForm.value.category_id),
       bank: budget.value?.bank || transactionForm.value.bank,
       payment_method: transactionForm.value.payment_method,
       timestamp: transactionForm.value.timestamp.toISOString(),
@@ -1498,7 +1524,7 @@ const editTransaction = (transaction) => {
   transactionForm.value = {
     type: transaction.type,
     amount: transaction.amount,
-    category: transaction.category,
+    category_id: resolveCategoryId(transaction.category_id || transaction.category),
     bank: budget.value?.bank || transaction.bank,
     payment_method: transaction.payment_method,
     timestamp: new Date(transaction.timestamp),
@@ -1580,7 +1606,10 @@ const applyRecurringExpenses = async () => {
 // Budget Items Editing Functions
 const startEditingBudgetItems = () => {
   editingBudgetItems.value = true
-  tempBudgetItems.value = JSON.parse(JSON.stringify(budget.value.budget_items || []))
+  tempBudgetItems.value = JSON.parse(JSON.stringify(budget.value.budget_items || [])).map((item) => ({
+    ...item,
+    category_id: resolveCategoryId(item.category_id || item.category)
+  }))
 }
 
 const cancelEditingBudgetItems = () => {
@@ -1590,7 +1619,7 @@ const cancelEditingBudgetItems = () => {
 
 const addNewBudgetItem = () => {
   tempBudgetItems.value.push({
-    category: '',
+    category_id: '',
     planned_amount: 0,
     spent_amount: 0
   })
@@ -1603,7 +1632,7 @@ const removeBudgetItem = (index) => {
 const saveBudgetItems = async () => {
   try {
     // Validate that all items have a category and amount
-    const invalidItems = tempBudgetItems.value.filter(item => !item.category || !item.planned_amount)
+    const invalidItems = tempBudgetItems.value.filter(item => !item.category_id || !item.planned_amount)
     if (invalidItems.length > 0) {
       toast.add({
         severity: 'warn',
@@ -1615,7 +1644,10 @@ const saveBudgetItems = async () => {
     }
 
     await budgetStore.updateBudget(budgetId.value, {
-      budget_items: tempBudgetItems.value
+      budget_items: tempBudgetItems.value.map((item) => ({
+        ...item,
+        category: resolveCategoryName(item.category_id)
+      }))
     })
 
     toast.add({

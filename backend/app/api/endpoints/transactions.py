@@ -16,7 +16,10 @@ async def create_transaction(
 ):
     """Create a new transaction"""
     service = TransactionService(db)
-    return await service.create_transaction(transaction)
+    try:
+        return await service.create_transaction(transaction)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
 
 @router.get("", response_model=List[Transaction])
@@ -24,6 +27,7 @@ async def get_transactions(
     budget_id: Optional[str] = None,
     type_filter: Optional[str] = Query(None, pattern="^(income|expense)$"),
     category: Optional[str] = None,
+    category_id: Optional[str] = None,
     is_charged: Optional[bool] = None,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
@@ -34,7 +38,7 @@ async def get_transactions(
     """Get all transactions with optional filters"""
     service = TransactionService(db)
     return await service.get_transactions(
-        budget_id, type_filter, category, is_charged,
+        budget_id, type_filter, category, category_id, is_charged,
         start_date, end_date, skip, limit
     )
 
@@ -70,7 +74,11 @@ async def update_transaction(
 ):
     """Update a transaction"""
     service = TransactionService(db)
-    transaction = await service.update_transaction(transaction_id, transaction_update)
+    try:
+        transaction = await service.update_transaction(transaction_id, transaction_update)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
     if not transaction:
         raise HTTPException(status_code=404, detail="Transaction not found")
     return transaction
@@ -115,4 +123,7 @@ async def bulk_create_transactions(
 ):
     """Create multiple transactions at once"""
     service = TransactionService(db)
-    return await service.bulk_create_transactions(transactions)
+    try:
+        return await service.bulk_create_transactions(transactions)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error

@@ -25,7 +25,10 @@ async def create_recurring_expense(
 ):
     """Create a new recurring expense"""
     service = RecurringExpenseService(db)
-    return await service.create_recurring_expense(expense)
+    try:
+        return await service.create_recurring_expense(expense)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
 
 @router.get("", response_model=List[RecurringExpense])
@@ -71,7 +74,11 @@ async def update_recurring_expense(
 ):
     """Update a recurring expense"""
     service = RecurringExpenseService(db)
-    expense = await service.update_recurring_expense(expense_id, expense_update)
+    try:
+        expense = await service.update_recurring_expense(expense_id, expense_update)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
     if not expense:
         raise HTTPException(status_code=404, detail="Recurring expense not found")
     return expense
@@ -125,7 +132,12 @@ async def apply_recurring_to_budget(
     
     # Convert existing items to dict with planned_amount as float
     for item in existing_items:
-        items_dict[item.category] = {
+        item_key = item.category_id or item.category
+        if not item_key:
+            continue
+
+        items_dict[item_key] = {
+            'category_id': item.category_id,
             'category': item.category,
             'planned_amount': float(item.planned_amount),
             'spent_amount': float(item.spent_amount)
@@ -133,12 +145,17 @@ async def apply_recurring_to_budget(
     
     # Add or update budget items for each recurring expense
     for expense in recurring_expenses:
-        if expense.category in items_dict:
+        expense_key = expense.category_id or expense.category
+        if not expense_key:
+            continue
+
+        if expense_key in items_dict:
             # Category already exists, add the amount to planned_amount
-            items_dict[expense.category]['planned_amount'] += float(expense.amount)
+            items_dict[expense_key]['planned_amount'] += float(expense.amount)
         else:
             # Create new budget item
-            items_dict[expense.category] = {
+            items_dict[expense_key] = {
+                'category_id': expense.category_id,
                 'category': expense.category,
                 'planned_amount': float(expense.amount),
                 'spent_amount': 0
@@ -147,7 +164,8 @@ async def apply_recurring_to_budget(
     # Convert dict back to BudgetItem list
     updated_items = [
         BudgetItem(
-            category=item['category'],
+            category_id=item.get('category_id'),
+            category=item.get('category'),
             planned_amount=item['planned_amount'],
             spent_amount=item['spent_amount']
         )

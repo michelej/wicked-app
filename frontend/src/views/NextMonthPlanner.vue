@@ -84,7 +84,7 @@
 
               <div v-else class="line-items-list">
                 <div v-for="row in ingForm.incomeItems" :key="row.id" class="line-item-row">
-                  <Select v-model="row.category" :options="incomeCategoryOptions" optionLabel="displayName" optionValue="name" class="flex-select" filter filterBy="name,displayName">
+                  <Select v-model="row.category_id" :options="incomeCategoryOptions" optionLabel="displayName" optionValue="_id" class="flex-select" filter filterBy="name,displayName">
                     <template #option="{ option }">
                       <div class="category-option">
                         <span v-if="option.parent_id" class="subcategory-indicator">↳</span>
@@ -132,7 +132,7 @@
 
               <div v-else class="line-items-list">
                 <div v-for="row in ingForm.expenseItems" :key="row.id" class="line-item-row">
-                  <Select v-model="row.category" :options="expenseCategoryOptions" optionLabel="displayName" optionValue="name" class="flex-select" filter filterBy="name,displayName">
+                  <Select v-model="row.category_id" :options="expenseCategoryOptions" optionLabel="displayName" optionValue="_id" class="flex-select" filter filterBy="name,displayName">
                     <template #option="{ option }">
                       <div class="category-option">
                         <span v-if="option.parent_id" class="subcategory-indicator">↳</span>
@@ -220,7 +220,7 @@
 
               <div v-else class="line-items-list">
                 <div v-for="row in bbvaForm.expenseItems" :key="row.id" class="line-item-row">
-                  <Select v-model="row.category" :options="expenseCategoryOptions" optionLabel="displayName" optionValue="name" class="flex-select" filter filterBy="name,displayName">
+                  <Select v-model="row.category_id" :options="expenseCategoryOptions" optionLabel="displayName" optionValue="_id" class="flex-select" filter filterBy="name,displayName">
                     <template #option="{ option }">
                       <div class="category-option">
                         <span v-if="option.parent_id" class="subcategory-indicator">↳</span>
@@ -323,9 +323,9 @@ const normalizeIcon = (icon) => {
   return `pi pi-${icon}`
 }
 
-const createCategoryRow = (category = '', plannedAmount = null) => ({
+const createCategoryRow = (categoryId = '', plannedAmount = null) => ({
   id: createRowId(),
-  category,
+  category_id: categoryId,
   planned_amount: plannedAmount
 })
 
@@ -362,6 +362,14 @@ const categoryByName = computed(() => {
   return lookup
 })
 
+const categoryById = computed(() => {
+  const lookup = {}
+  categoryStore.categories.forEach((category) => {
+    lookup[category._id] = category
+  })
+  return lookup
+})
+
 const incomeCategoryOptions = computed(() => {
   return categoryStore.sortedIncomeCategories.map((category) => ({
     ...category,
@@ -369,9 +377,9 @@ const incomeCategoryOptions = computed(() => {
   }))
 })
 
-const defaultIncomeCategoryName = computed(() => {
+const defaultIncomeCategoryId = computed(() => {
   const payrollCategory = incomeCategoryOptions.value.find((category) => /nomina/i.test(category.name))
-  return payrollCategory?.name || incomeCategoryOptions.value[0]?.name || ''
+  return payrollCategory?._id || incomeCategoryOptions.value[0]?._id || ''
 })
 
 const expenseCategoryOptions = computed(() => {
@@ -408,9 +416,29 @@ const recurringDialogTargetLabel = computed(() => {
   return 'presupuesto seleccionado'
 })
 
-const isIncomeCategory = (categoryName) => {
-  const category = categoryByName.value[categoryName]
-  return category ? category.type === 'income' || category.type === 'both' : /nomina|ingreso/i.test(categoryName || '')
+const resolveCategoryId = (categoryValue) => {
+  if (!categoryValue) {
+    return ''
+  }
+
+  if (categoryById.value[categoryValue]) {
+    return categoryValue
+  }
+
+  return categoryStore.categories.find((category) => category.name === categoryValue)?._id || ''
+}
+
+const resolveCategoryName = (categoryId) => {
+  if (!categoryId) {
+    return ''
+  }
+
+  return categoryById.value[categoryId]?.name || ''
+}
+
+const isIncomeCategory = (categoryValue) => {
+  const category = categoryById.value[categoryValue] || categoryByName.value[categoryValue]
+  return category ? category.type === 'income' || category.type === 'both' : /nomina|ingreso/i.test(categoryValue || '')
 }
 
 const mapBudgetToForm = (budget) => {
@@ -423,9 +451,13 @@ const mapBudgetToForm = (budget) => {
     start_date: budget.start_date,
     end_date: budget.end_date,
     incomeItems: budget.bank === 'ING Direct'
-      ? items.filter((item) => item.category !== TRANSFER_CATEGORY && isIncomeCategory(item.category)).map((item) => createCategoryRow(item.category, Number(item.planned_amount)))
+      ? items
+        .filter((item) => item.category !== TRANSFER_CATEGORY && isIncomeCategory(item.category_id || item.category))
+        .map((item) => createCategoryRow(resolveCategoryId(item.category_id || item.category), Number(item.planned_amount)))
       : [],
-    expenseItems: items.filter((item) => item.category !== TRANSFER_CATEGORY && (budget.bank === 'BBVA' || !isIncomeCategory(item.category))).map((item) => createCategoryRow(item.category, Number(item.planned_amount))),
+    expenseItems: items
+      .filter((item) => item.category !== TRANSFER_CATEGORY && (budget.bank === 'BBVA' || !isIncomeCategory(item.category_id || item.category)))
+      .map((item) => createCategoryRow(resolveCategoryId(item.category_id || item.category), Number(item.planned_amount))),
     transferAmount: budget.bank === 'ING Direct' ? Number(transferItem?.planned_amount || 0) : null,
     temporaryIncomes: budget.bank === 'ING Direct'
       ? (budget.planning_metadata?.temporary_incomes || []).map((item) => createTemporaryIncomeRow(item.label, Number(item.amount)))
@@ -437,7 +469,7 @@ const hydrateForms = () => {
   if (ingBudget.value) {
     ingForm.value = mapBudgetToForm(ingBudget.value)
     if (ingForm.value.incomeItems.length === 0) {
-      ingForm.value.incomeItems.push(createCategoryRow(defaultIncomeCategoryName.value))
+      ingForm.value.incomeItems.push(createCategoryRow(defaultIncomeCategoryId.value))
     }
   }
 
@@ -500,35 +532,41 @@ const collapseItems = (items) => {
 
   items.forEach((item) => {
     const currentAmount = Number(item.planned_amount || 0)
-    if (!merged.has(item.category)) {
-      merged.set(item.category, currentAmount)
+    const itemKey = item.category_id || item.category
+    if (!merged.has(itemKey)) {
+      merged.set(itemKey, {
+        category_id: item.category_id || '',
+        category: item.category || resolveCategoryName(item.category_id),
+        planned_amount: currentAmount
+      })
       return
     }
 
-    merged.set(item.category, merged.get(item.category) + currentAmount)
+    merged.get(itemKey).planned_amount += currentAmount
   })
 
-  return Array.from(merged.entries()).map(([category, planned_amount]) => ({
-    category,
-    planned_amount,
+  return Array.from(merged.values()).map((item) => ({
+    category_id: item.category_id || null,
+    category: item.category,
+    planned_amount: item.planned_amount,
     spent_amount: 0
   }))
 }
 
 const sanitizeCategoryRows = (rows, sectionLabel) => {
   return rows.reduce((result, row) => {
-    const category = String(row.category || '').trim()
+    const categoryId = String(row.category_id || '').trim()
     const plannedAmount = Number(row.planned_amount || 0)
 
-    if (!category && !plannedAmount) {
+    if (!categoryId && !plannedAmount) {
       return result
     }
 
-    if (!category || plannedAmount <= 0) {
+    if (!categoryId || plannedAmount <= 0) {
       throw new Error(`Completa correctamente los valores de ${sectionLabel}.`)
     }
 
-    result.push({ category, planned_amount: plannedAmount, spent_amount: 0 })
+    result.push({ category_id: categoryId, category: resolveCategoryName(categoryId), planned_amount: plannedAmount, spent_amount: 0 })
     return result
   }, [])
 }
@@ -557,8 +595,9 @@ const buildPayload = (bankKey) => {
     const expenseItems = sanitizeCategoryRows(ingForm.value.expenseItems, 'las salidas de ING')
     const temporaryIncomes = sanitizeTemporaryIncomes(ingForm.value.temporaryIncomes)
     const transferAmount = Number(ingForm.value.transferAmount || 0)
+    const transferCategoryId = resolveCategoryId(TRANSFER_CATEGORY)
     const transferItems = transferAmount > 0
-      ? [{ category: TRANSFER_CATEGORY, planned_amount: transferAmount, spent_amount: 0 }]
+      ? [{ category_id: transferCategoryId, category: TRANSFER_CATEGORY, planned_amount: transferAmount, spent_amount: 0 }]
       : []
 
     return {

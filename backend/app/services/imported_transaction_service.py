@@ -19,6 +19,7 @@ from app.models.imported_transaction import (
 )
 from app.models.transaction import TransactionCreate
 from app.services.transaction_service import TransactionService
+from app.utils.category_references import load_category_reference_maps, resolve_category_document
 
 
 SPREADSHEET_NS = {"sheet": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
@@ -147,10 +148,17 @@ class ImportedTransactionService:
         resolved_comment = payload.comment or imported_transaction.comment_suggestion
         resolved_timestamp = payload.timestamp or imported_transaction.suggested_timestamp or imported_transaction.value_date or imported_transaction.booking_date or datetime.utcnow()
         resolved_bank = payload.bank or normalize_bank_label(imported_transaction.source_bank)
+        processed_category_name = payload.category
+
+        if payload.category_id and not processed_category_name:
+            category_maps = await load_category_reference_maps(self.db)
+            category_document = resolve_category_document(category_maps, category_id=payload.category_id)
+            processed_category_name = category_document["name"] if category_document else None
 
         update_data: Dict[str, Any] = {
             "processed_budget_id": payload.budget_id,
-            "processed_category": payload.category,
+            "processed_category_id": payload.category_id,
+            "processed_category": processed_category_name,
             "processed_bank": resolved_bank,
             "processed_payment_method": payload.payment_method,
             "processed_comment": resolved_comment,
@@ -161,7 +169,7 @@ class ImportedTransactionService:
         }
 
         if payload.import_to_system:
-            if not payload.budget_id or not payload.category or not payload.payment_method:
+            if not payload.budget_id or (not payload.category_id and not payload.category) or not payload.payment_method:
                 raise ValueError("Para incorporar la transacción al sistema debes seleccionar presupuesto, categoría y método de pago.")
 
             transaction_service = TransactionService(self.db)
@@ -170,6 +178,7 @@ class ImportedTransactionService:
                     budget_id=payload.budget_id,
                     type=resolved_type,
                     amount=imported_transaction.amount,
+                    category_id=payload.category_id,
                     category=payload.category,
                     bank=resolved_bank,
                     payment_method=payload.payment_method,
@@ -180,6 +189,8 @@ class ImportedTransactionService:
             )
             update_data["status"] = "processed_imported"
             update_data["processed_transaction_id"] = created_transaction.id
+            update_data["processed_category_id"] = created_transaction.category_id
+            update_data["processed_category"] = created_transaction.category
         else:
             update_data["status"] = "processed_skipped"
             update_data["processed_transaction_id"] = None
