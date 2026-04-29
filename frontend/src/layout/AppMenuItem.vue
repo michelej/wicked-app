@@ -7,6 +7,7 @@
       @click="itemClick($event, item)"
       :class="linkClass"
       :target="item.target"
+      :aria-disabled="item.disabled ? 'true' : 'false'"
       tabindex="0"
     >
       <i v-if="item.icon" :class="item.icon" class="layout-menuitem-icon"></i>
@@ -17,6 +18,7 @@
       v-if="item.to && !item.items && item.visible !== false"
       @click="itemClick($event, item)"
       :class="linkClass"
+      :aria-disabled="item.disabled ? 'true' : 'false'"
       tabindex="0"
       :to="item.to"
     >
@@ -69,6 +71,10 @@ onBeforeMount(() => {
   const activeItem = layoutState.activeMenuItem.value
 
   isActiveMenu.value = activeItem === itemKey.value || activeItem ? activeItem.startsWith(itemKey.value + '-') : false
+
+  if (props.item.items && hasRouteMatch(props.item)) {
+    isActiveMenu.value = true
+  }
 })
 
 watch(
@@ -78,10 +84,43 @@ watch(
   }
 )
 
+watch(
+  () => route.fullPath,
+  () => {
+    if (props.item.items && hasRouteMatch(props.item)) {
+      isActiveMenu.value = true
+    }
+  }
+)
+
+const hasRouteMatch = (item) => {
+  if (!item) {
+    return false
+  }
+
+  if (Array.isArray(item.activeRouteNames) && item.activeRouteNames.includes(route.name)) {
+    return true
+  }
+
+  if (item.to && (route.path === item.to || route.path.startsWith(item.to + '/'))) {
+    return true
+  }
+
+  if (Array.isArray(item.items)) {
+    return item.items.some((child) => hasRouteMatch(child))
+  }
+
+  return false
+}
+
 const itemClick = (event, item) => {
   if (item.disabled) {
     event.preventDefault()
     return
+  }
+
+  if (item.command || item.items) {
+    event.preventDefault()
   }
 
   if ((item.to || item.url) && (layoutState.staticMenuMobileActive.value)) {
@@ -107,6 +146,7 @@ const containerClass = computed(() => [
 const linkClass = computed(() => [
   'p-ripple',
   {
+    'is-disabled': props.item.disabled,
     'router-link-active': isActive.value,
     'router-link-exact-active': isExactActive.value
   }
@@ -122,7 +162,7 @@ const isActive = computed(() => {
 
 const isExactActive = computed(() => {
   if (Array.isArray(props.item.activeRouteNames) && props.item.activeRouteNames.length > 0) {
-    return route.path === props.item.to
+    return props.item.activeRouteNames.includes(route.name)
   }
 
   return route.path === props.item.to
@@ -204,6 +244,18 @@ const isExactActive = computed(() => {
   height: calc(100% - 1rem);
   border-radius: 999px;
   background: linear-gradient(180deg, #0f8b6f 0%, #d97706 100%);
+}
+
+.layout-submenu a.is-disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+  background: rgba(248, 250, 252, 0.52);
+}
+
+.layout-submenu a.is-disabled:hover {
+  transform: none;
+  border-color: transparent;
+  background: rgba(248, 250, 252, 0.52);
 }
 
 .layout-submenu-enter-from,

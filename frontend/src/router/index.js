@@ -39,6 +39,83 @@ const router = createRouter({
           component: () => import('@/views/BudgetView.vue')
         },
         {
+          path: 'registry',
+          name: 'registry-all',
+          component: () => import('@/views/RegistryHub.vue')
+        },
+        {
+          path: 'registry/timeline',
+          name: 'registry-timeline',
+          component: () => import('@/views/RegistryHub.vue')
+        },
+        {
+          path: 'registry/dates',
+          name: 'registry-dates',
+          component: () => import('@/views/RegistryHub.vue')
+        },
+        {
+          path: 'registry/trips',
+          name: 'registry-trips',
+          component: () => import('@/views/RegistryHub.vue')
+        },
+        {
+          path: 'registry/purchases',
+          name: 'registry-purchases',
+          component: () => import('@/views/RegistryHub.vue')
+        },
+        {
+          path: 'registry/documents',
+          name: 'registry-documents',
+          component: () => import('@/views/RegistryHub.vue')
+        },
+        {
+          path: 'registry/subscriptions',
+          name: 'registry-subscriptions',
+          component: () => import('@/views/RegistryHub.vue')
+        },
+        {
+          path: 'registry/notes',
+          name: 'registry-notes',
+          component: () => import('@/views/RegistryHub.vue')
+        },
+        {
+          path: 'registry/archived',
+          name: 'registry-archived',
+          component: () => import('@/views/RegistryHub.vue')
+        },
+        {
+          path: 'metadata',
+          redirect: { name: 'registry-all' }
+        },
+        {
+          path: 'metadata/records',
+          redirect: { name: 'registry-all' }
+        },
+        {
+          path: 'metadata/templates',
+          redirect: { name: 'registry-all' }
+        },
+        {
+          path: 'japanese',
+          name: 'japanese-hub',
+          component: () => import('@/views/JapaneseHub.vue')
+        },
+        {
+          path: 'japanese/words',
+          name: 'japanese-words',
+          component: () => import('@/views/JapaneseHub.vue')
+        },
+        {
+          path: 'japanese/phrases',
+          name: 'japanese-phrases',
+          component: () => import('@/views/JapaneseHub.vue')
+        },
+        {
+          path: 'japanese/practice',
+          name: 'japanese-practice',
+          component: () => import('@/views/JapaneseHub.vue')
+        },
+        {
           path: 'transactions',
           name: 'transactions',
           component: () => import('@/views/TransactionManager.vue')

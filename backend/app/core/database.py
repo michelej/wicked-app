@@ -35,6 +35,16 @@ class Database:
         await db.categories.create_index("name", unique=True)
         await db.categories.create_index("type")
         await db.categories.create_index("is_active")
+        await db.registry_items.create_index("type")
+        await db.registry_items.create_index("status")
+        await db.registry_items.create_index("date")
+        await db.registry_items.create_index("startDate")
+        await db.registry_items.create_index("endDate")
+        await db.registry_items.create_index("tags")
+        await db.registry_items.create_index("location")
+        await db.registry_items.create_index("amount")
+        await db.registry_items.create_index("relatedEntities.entityType")
+        await db.registry_items.create_index("relatedEntities.entityId")
     
     @staticmethod
     async def close_db():
