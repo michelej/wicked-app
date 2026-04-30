@@ -1,53 +1,5 @@
 <template>
-  <div class="hub-home">
-    <section class="hub-hero">
-      <div class="hero-copy">
-        <span class="hero-kicker">Hub personal</span>
-        <h1>Un espacio para tus herramientas personales, no solo para tus finanzas.</h1>
-        <p>
-          Convierte la aplicacion en un ecosistema modular: presupuestos, registros flexibles y micro apps de aprendizaje,
-          todo accesible desde una entrada clara y preparada para crecer.
-        </p>
-
-        <div class="hero-actions">
-          <Button
-            label="Abrir Presupuestos"
-            icon="pi pi-wallet"
-            class="hero-primary-action"
-            severity="success"
-            @click="navigateToBudgets"
-          />
-          <Button
-            label="Planificar mes siguiente"
-            icon="pi pi-calendar"
-            outlined
-            class="hero-secondary-action"
-            @click="navigateToPlanner"
-          />
-        </div>
-      </div>
-
-      <div class="hero-command-panel">
-        <div class="command-bar-shell">
-          <i class="pi pi-search"></i>
-          <span>Buscar modulos, acciones o vistas...</span>
-          <kbd>Ctrl K</kbd>
-        </div>
-
-        <div class="favorite-stack">
-          <div class="favorite-card accent-finance">
-            <span class="favorite-label">Favorito actual</span>
-            <strong>Presupuestos</strong>
-            <small>{{ budgetSnapshotLabel }}</small>
-          </div>
-          <div class="favorite-card accent-notes">
-            <span class="favorite-label">Siguiente modulo</span>
-            <strong>Registro</strong>
-            <small>Fechas, viajes, compras, documentos y notas dentro de un mismo sistema.</small>
-          </div>
-        </div>
-      </div>
-    </section>
+  <div class="hub-home">    
 
     <section class="quick-actions-panel">
       <div class="section-heading">

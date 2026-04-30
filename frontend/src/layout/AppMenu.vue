@@ -1,22 +1,12 @@
 <template>
-  <div class="sidebar-menu-shell">
-    <div class="menu-intro">
-      <span class="menu-kicker">Hub personal</span>
-      <h2>Un launcher para modulos que crecen contigo.</h2>
-      <p>Selecciona una feature y despliega solo sus herramientas. El sidebar cambia de contexto sin perder consistencia.</p>
-    </div>
+  <div class="sidebar-menu-shell">    
 
     <ul class="layout-menu">
       <template v-for="(item, i) in model" :key="item.label">
         <app-menu-item v-if="!item.separator" :item="item" :index="i" :root="true"></app-menu-item>
         <li v-if="item.separator" class="menu-separator"></li>
       </template>
-    </ul>
-
-    <div class="menu-support-card">
-      <span class="support-label">Ecosistema</span>
-      <strong>Presupuestos, registro y japones ya funcionan como modulos independientes dentro del mismo hub.</strong>
-    </div>
+    </ul>    
   </div>
 </template>
 
@@ -45,6 +35,7 @@ const model = ref([
       {
         label: 'Presupuestos',
         icon: 'pi pi-fw pi-wallet',
+        featured: true,
         to: '/budgets',
         activeRouteNames: ['budgets', 'budget-detail', 'next-month-planner-setup', 'next-month-planner', 'monthly-budget-summary', 'transactions', 'credit-cards', 'imports-upload', 'imports-review', 'recurring', 'categories'],
         command: () => router.push('/budgets'),
@@ -108,6 +99,7 @@ const model = ref([
       {
         label: 'Registro',
         icon: 'pi pi-fw pi-bookmark',
+        featured: true,
         to: { name: 'registry-all' },
         activeRouteNames: ['registry-all', 'registry-timeline', 'registry-dates', 'registry-trips', 'registry-purchases', 'registry-documents', 'registry-subscriptions', 'registry-notes', 'registry-archived'],
         command: () => router.push({ name: 'registry-all' }),
@@ -171,6 +163,7 @@ const model = ref([
       {
         label: 'Japones',
         icon: 'pi pi-fw pi-language',
+        featured: true,
         to: { name: 'japanese-hub' },
         activeRouteNames: ['japanese-hub', 'japanese-words', 'japanese-phrases', 'japanese-practice'],
         command: () => router.push({ name: 'japanese-hub' }),

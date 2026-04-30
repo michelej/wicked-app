@@ -5,16 +5,9 @@
         <i class="pi pi-bolt"></i>
       </div>
       <div class="logo-copy">
-        <span class="logo-text">Wicked<span class="logo-accent">App</span></span>
-        <span class="logo-caption">Financial command center</span>
+        <span class="logo-text">Wicked<span class="logo-accent">App</span></span>        
       </div>
-    </router-link>
-
-    <div class="topbar-context">
-      <span class="context-kicker">Workspace</span>
-      <strong>Control financiero en tiempo real</strong>
-    </div>
-
+    </router-link>    
     <button class="p-link layout-menu-button layout-topbar-button" @click="onMenuToggle">
       <i class="pi pi-bars"></i>
     </button>
@@ -240,10 +233,6 @@ const showProfileSidebar = () => {
 
 .profile-meta small {
   color: var(--text-color-secondary);
-}
-
-.layout-menu-button {
-  margin-left: auto;
 }
 
 .layout-topbar-menu-button {

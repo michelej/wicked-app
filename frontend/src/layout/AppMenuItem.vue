@@ -12,6 +12,7 @@
     >
       <i v-if="item.icon" :class="item.icon" class="layout-menuitem-icon"></i>
       <span class="layout-menuitem-text">{{ item.label }}</span>
+      <span v-if="item.featured" class="layout-menuitem-badge">Core</span>
       <i class="pi pi-fw pi-angle-down layout-submenu-toggler" v-if="item.items"></i>
     </a>
     <router-link
@@ -24,6 +25,7 @@
     >
       <i :class="item.icon" class="layout-menuitem-icon"></i>
       <span class="layout-menuitem-text">{{ item.label }}</span>
+      <span v-if="item.featured" class="layout-menuitem-badge">Core</span>
       <i class="pi pi-fw pi-angle-down layout-submenu-toggler" v-if="item.items"></i>
     </router-link>
     <Transition v-if="item.items && item.visible !== false" name="layout-submenu">
@@ -146,6 +148,7 @@ const containerClass = computed(() => [
 const linkClass = computed(() => [
   'p-ripple',
   {
+    'is-featured': props.item.featured,
     'is-disabled': props.item.disabled,
     'router-link-active': isActive.value,
     'router-link-exact-active': isExactActive.value
@@ -189,8 +192,20 @@ const isExactActive = computed(() => {
   vertical-align: middle;
 }
 
-.layout-submenu-toggler {
+.layout-menuitem-badge {
   margin-left: auto;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(15, 139, 111, 0.1);
+  color: #0f8b6f;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.layout-submenu-toggler {
+  margin-left: 0.35rem;
   transition: transform 0.2s;
 }
 
@@ -232,6 +247,20 @@ const isExactActive = computed(() => {
   background: linear-gradient(135deg, rgba(15, 139, 111, 0.12) 0%, rgba(217, 119, 6, 0.08) 100%);
   border-color: rgba(15, 139, 111, 0.18);
   box-shadow: 0 14px 24px rgba(15, 139, 111, 0.1);
+}
+
+.layout-submenu a.is-featured {
+  background: linear-gradient(135deg, rgba(15, 139, 111, 0.12) 0%, rgba(37, 99, 235, 0.08) 100%);
+  border-color: rgba(15, 139, 111, 0.14);
+  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.06);
+}
+
+.layout-submenu a.is-featured:hover {
+  border-color: rgba(15, 139, 111, 0.2);
+}
+
+.layout-submenu a.is-featured .layout-menuitem-icon {
+  color: #0f8b6f;
 }
 
 .layout-submenu a.router-link-active::before {
