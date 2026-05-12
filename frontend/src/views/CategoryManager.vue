@@ -75,6 +75,7 @@
         <span>Categoría</span>
         <span>Padre</span>
         <span>Tipo</span>
+        <span>Presupuesto</span>
         <span>Estado</span>
         <span class="actions-column">Acciones</span>
       </div>
@@ -110,6 +111,13 @@
           <Tag
             :value="formatCategoryType(category.type)"
             :severity="getCategoryTypeSeverity(category.type)"
+          />
+        </div>
+
+        <div class="category-secondary-cell">
+          <Tag
+            :value="formatBudgetCategoryType(category.budget_category_type)"
+            :severity="getBudgetCategoryTypeSeverity(category.budget_category_type)"
           />
         </div>
 
@@ -204,6 +212,19 @@
         </div>
 
         <div class="form-field">
+          <label for="budgetCategoryType">Comportamiento presupuesto *</label>
+          <Select 
+            id="budgetCategoryType"
+            v-model="categoryForm.budget_category_type"
+            :options="budgetCategoryTypeOptions"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full"
+          />
+          <small class="form-help">Define si el gasto se comporta como fijo o variable dentro del presupuesto.</small>
+        </div>
+
+        <div class="form-field">
           <label for="icon">Icono *</label>
           <Select 
             id="icon"
@@ -272,6 +293,10 @@
               <Tag 
                 :value="formatCategoryType(categoryForm.type)"
                 :severity="getCategoryTypeSeverity(categoryForm.type)"
+              />
+              <Tag
+                :value="formatBudgetCategoryType(categoryForm.budget_category_type)"
+                :severity="getBudgetCategoryTypeSeverity(categoryForm.budget_category_type)"
               />
             </div>
           </div>
@@ -350,6 +375,7 @@ const categoryForm = ref({
   icon: 'pi pi-tag',
   color: '#64748B',
   parent_id: null,
+  budget_category_type: 'variable',
   is_active: true
 })
 
@@ -357,6 +383,11 @@ const typeOptions = [
   { label: 'Gasto', value: 'expense' },
   { label: 'Ingreso', value: 'income' },
   { label: 'Ambos', value: 'both' }
+]
+
+const budgetCategoryTypeOptions = [
+  { label: 'Fijo', value: 'fixed' },
+  { label: 'Variable', value: 'variable' }
 ]
 
 const iconOptions = [
@@ -563,6 +594,22 @@ const getCategoryTypeSeverity = (type) => {
   }
 }
 
+const formatBudgetCategoryType = (type) => {
+  switch (type) {
+    case 'fixed': return 'Fijo'
+    case 'variable': return 'Variable'
+    default: return 'Variable'
+  }
+}
+
+const getBudgetCategoryTypeSeverity = (type) => {
+  switch (type) {
+    case 'fixed': return 'warning'
+    case 'variable': return 'info'
+    default: return 'secondary'
+  }
+}
+
 const closeDialog = () => {
   showCreateDialog.value = false
   editingCategory.value = null
@@ -572,6 +619,7 @@ const closeDialog = () => {
     icon: 'pi pi-tag',
     color: '#64748B',
     parent_id: null,
+    budget_category_type: 'variable',
     is_active: true
   }
 }
@@ -624,6 +672,7 @@ const editCategory = (category) => {
     icon: category.icon,
     color: category.color,
     parent_id: category.parent_id || null,
+    budget_category_type: category.budget_category_type || 'variable',
     is_active: category.is_active
   }
   showCreateDialog.value = true
@@ -790,7 +839,7 @@ const getParentName = (category) => {
 .categories-table-header,
 .category-row {
   display: grid;
-  grid-template-columns: minmax(280px, 2.2fr) minmax(160px, 1.2fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr) auto;
+  grid-template-columns: minmax(280px, 2.2fr) minmax(160px, 1.1fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr) auto;
   gap: 1rem;
   align-items: center;
 }

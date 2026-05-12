@@ -21,6 +21,11 @@ export default {
     return apiClient.get(`/api/budgets/${id}/summary`)
   },
 
+  // Get budget financial summary
+  getBudgetFinancialSummary(id) {
+    return apiClient.get(`/api/budgets/${id}/financial-summary`)
+  },
+
   // Get monthly budget summaries
   getMonthlyBudgetSummaries() {
     return apiClient.get('/api/budgets/monthly-summary')

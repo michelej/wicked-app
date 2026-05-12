@@ -1,6 +1,9 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
+
+
+BudgetCategoryType = Literal["fixed", "variable"]
 
 
 class CategoryBase(BaseModel):
@@ -9,6 +12,7 @@ class CategoryBase(BaseModel):
     icon: Optional[str] = Field(None, max_length=50)
     color: Optional[str] = Field(None, pattern="^#[0-9A-Fa-f]{6}$")
     parent_id: Optional[str] = Field(None, description="Parent category ID for subcategories")
+    budget_category_type: BudgetCategoryType = "variable"
     is_active: bool = True
 
 
@@ -22,6 +26,7 @@ class CategoryUpdate(BaseModel):
     icon: Optional[str] = Field(None, max_length=50)
     color: Optional[str] = Field(None, pattern="^#[0-9A-Fa-f]{6}$")
     parent_id: Optional[str] = Field(None, description="Parent category ID for subcategories")
+    budget_category_type: Optional[BudgetCategoryType] = None
     is_active: Optional[bool] = None
 
 
@@ -40,6 +45,7 @@ class Category(CategoryBase):
                 "icon": "pi pi-tint",
                 "color": "#3B82F6",
                 "parent_id": "507f1f77bcf86cd799439010",
+                "budget_category_type": "variable",
                 "is_active": True,
                 "created_at": "2026-03-02T10:00:00",
                 "updated_at": "2026-03-02T10:00:00"

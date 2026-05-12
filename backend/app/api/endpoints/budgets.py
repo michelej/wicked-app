@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List, Optional
 from app.core.database import get_database
-from app.models.budget import Budget, BudgetCreate, BudgetUpdate, BudgetSummary, MonthlyBudgetSummary
+from app.models.budget import Budget, BudgetCreate, BudgetFinancialSummary, BudgetUpdate, BudgetSummary, MonthlyBudgetSummary
 from app.services.budget_service import BudgetService
 
 router = APIRouter(prefix="/budgets", tags=["budgets"])
@@ -73,6 +73,25 @@ async def get_budget_summary(
     if not summary:
         raise HTTPException(status_code=500, detail="Failed to generate summary")
     
+    return summary
+
+
+@router.get("/{budget_id}/financial-summary", response_model=BudgetFinancialSummary)
+async def get_budget_financial_summary(
+    budget_id: str,
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Get global financial indicators for a budget."""
+    service = BudgetService(db)
+
+    budget = await service.get_budget(budget_id)
+    if not budget:
+        raise HTTPException(status_code=404, detail="Budget not found")
+
+    summary = await service.get_budget_financial_summary(budget_id)
+    if not summary:
+        raise HTTPException(status_code=500, detail="Failed to generate financial summary")
+
     return summary
 
 

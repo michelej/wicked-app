@@ -96,26 +96,6 @@ const router = createRouter({
           redirect: { name: 'registry-all' }
         },
         {
-          path: 'japanese',
-          name: 'japanese-hub',
-          component: () => import('@/views/JapaneseHub.vue')
-        },
-        {
-          path: 'japanese/words',
-          name: 'japanese-words',
-          component: () => import('@/views/JapaneseHub.vue')
-        },
-        {
-          path: 'japanese/phrases',
-          name: 'japanese-phrases',
-          component: () => import('@/views/JapaneseHub.vue')
-        },
-        {
-          path: 'japanese/practice',
-          name: 'japanese-practice',
-          component: () => import('@/views/JapaneseHub.vue')
-        },
-        {
           path: 'transactions',
           name: 'transactions',
           component: () => import('@/views/TransactionManager.vue')

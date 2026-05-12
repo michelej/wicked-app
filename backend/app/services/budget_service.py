@@ -1,11 +1,11 @@
 from datetime import datetime
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, List, Optional
 
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.models.budget import Budget, BudgetCreate, BudgetItem, BudgetSummary, BudgetUpdate, MonthlyBudgetSummary
+from app.models.budget import Budget, BudgetCreate, BudgetFinancialSummary, BudgetItem, BudgetSummary, BudgetSummaryItem, BudgetUpdate, MonthlyBudgetSummary
 from app.utils.category_references import (
     CategoryReferenceMaps,
     get_parent_category_name,
@@ -125,25 +125,52 @@ class BudgetService:
         updated_items = []
         total_planned = Decimal(0)
         total_spent = Decimal(0)
+        pendiente_reservado = Decimal(0)
+        exceso_total = Decimal(0)
+        has_exceeded_categories = False
 
         for item in budget.budget_items:
             category_name = item.category or self._resolve_category_name_from_item(item, category_maps)
+            category_document = resolve_category_document(category_maps, category_id=item.category_id, category_name=category_name)
             spent = category_spent.get(category_name, Decimal(0)) if category_name else Decimal(0)
+            remaining_amount = self._round_decimal(item.planned_amount - spent)
+            remaining_percentage = Decimal(0)
+            if item.planned_amount:
+                remaining_percentage = self._round_decimal((remaining_amount / item.planned_amount) * Decimal(100))
+
+            budget_category_type = category_document.get("budget_category_type", "variable") if category_document else "variable"
+            is_active = bool(category_document.get("is_active", True)) if category_document else True
+            budget_status = self._get_budget_item_status(budget_category_type, remaining_amount)
+
             total_planned += item.planned_amount
             total_spent += spent
 
-            updated_items.append({
+            if self._is_reservable_budget_item(category_name, category_document, is_active):
+                if remaining_amount > 0:
+                    pendiente_reservado += remaining_amount
+                elif remaining_amount < 0:
+                    exceso_total += abs(remaining_amount)
+                    has_exceeded_categories = True
+
+            updated_items.append(BudgetSummaryItem(**{
                 "category_id": item.category_id,
                 "category": category_name,
                 "planned_amount": item.planned_amount,
                 "spent_amount": spent,
-            })
+                "remaining_amount": remaining_amount,
+                "remaining_percentage": remaining_percentage,
+                "budget_category_type": budget_category_type,
+                "budget_status": budget_status,
+                "is_active": is_active,
+            }))
 
         balance = total_income - total_expense
         charged_balance = charged_income - charged_expense
         pending_income = total_income - charged_income
         pending_expense = total_expense - charged_expense
         total_remaining = total_planned - total_spent
+        dinero_libre_real = balance - pendiente_reservado
+        financial_status = self._get_financial_status(dinero_libre_real, has_exceeded_categories)
 
         return BudgetSummary(
             budget_id=budget_id,
@@ -158,8 +185,27 @@ class BudgetService:
             charged_expense=charged_expense,
             pending_income=pending_income,
             pending_expense=pending_expense,
+            saldo_real=balance,
+            pendiente_reservado=pendiente_reservado,
+            exceso_total=exceso_total,
+            dinero_libre_real=dinero_libre_real,
+            financial_status=financial_status,
             transactions_count=len(transactions),
             budget_items=updated_items,
+        )
+
+    async def get_budget_financial_summary(self, budget_id: str) -> Optional[BudgetFinancialSummary]:
+        summary = await self.get_budget_summary(budget_id)
+        if not summary:
+            return None
+
+        return BudgetFinancialSummary(
+            budget_id=summary.budget_id,
+            saldo_real=summary.saldo_real,
+            pendiente_reservado=summary.pendiente_reservado,
+            exceso_total=summary.exceso_total,
+            dinero_libre_real=summary.dinero_libre_real,
+            financial_status=summary.financial_status,
         )
 
     async def has_transactions(self, budget_id: str) -> bool:
@@ -358,6 +404,37 @@ class BudgetService:
             return category_document["name"]
 
         return item.category
+
+    def _get_budget_item_status(self, budget_category_type: str, remaining_amount: Decimal) -> str:
+        if remaining_amount < 0:
+            return "exceeded"
+
+        if budget_category_type == "fixed":
+            return "paid" if remaining_amount == 0 else "pending"
+
+        return "no_margin" if remaining_amount == 0 else "available"
+
+    def _is_reservable_budget_item(self, category_name: Optional[str], category_document: Optional[dict], is_active: bool) -> bool:
+        if not is_active:
+            return False
+
+        if category_name == "Transferido Cuentas":
+            return False
+
+        category_type = category_document.get("type") if category_document else None
+        return category_type in {"expense", "both"}
+
+    def _get_financial_status(self, dinero_libre_real: Decimal, has_exceeded_categories: bool) -> str:
+        if dinero_libre_real < 0:
+            return "CRITICAL"
+
+        if dinero_libre_real == 0 or has_exceeded_categories:
+            return "WARNING"
+
+        return "HEALTHY"
+
+    def _round_decimal(self, value: Decimal) -> Decimal:
+        return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     def _resolve_category_name_from_document(self, document: dict, category_maps: CategoryReferenceMaps) -> Optional[str]:
         category_document = resolve_category_document(

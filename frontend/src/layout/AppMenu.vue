@@ -36,6 +36,7 @@ const model = ref([
         label: 'Presupuestos',
         icon: 'pi pi-fw pi-wallet',
         featured: true,
+        featuredTone: 'finance',
         to: '/budgets',
         activeRouteNames: ['budgets', 'budget-detail', 'next-month-planner-setup', 'next-month-planner', 'monthly-budget-summary', 'transactions', 'credit-cards', 'imports-upload', 'imports-review', 'recurring', 'categories'],
         command: () => router.push('/budgets'),
@@ -100,6 +101,7 @@ const model = ref([
         label: 'Registro',
         icon: 'pi pi-fw pi-bookmark',
         featured: true,
+        featuredTone: 'registry',
         to: { name: 'registry-all' },
         activeRouteNames: ['registry-all', 'registry-timeline', 'registry-dates', 'registry-trips', 'registry-purchases', 'registry-documents', 'registry-subscriptions', 'registry-notes', 'registry-archived'],
         command: () => router.push({ name: 'registry-all' }),
@@ -157,40 +159,6 @@ const model = ref([
             icon: 'pi pi-fw pi-box',
             to: { name: 'registry-archived' },
             activeRouteNames: ['registry-archived']
-          }
-        ]
-      },
-      {
-        label: 'Japones',
-        icon: 'pi pi-fw pi-language',
-        featured: true,
-        to: { name: 'japanese-hub' },
-        activeRouteNames: ['japanese-hub', 'japanese-words', 'japanese-phrases', 'japanese-practice'],
-        command: () => router.push({ name: 'japanese-hub' }),
-        items: [
-          {
-            label: 'Vista general',
-            icon: 'pi pi-fw pi-sparkles',
-            to: { name: 'japanese-hub' },
-            activeRouteNames: ['japanese-hub']
-          },
-          {
-            label: 'Palabras',
-            icon: 'pi pi-fw pi-list-check',
-            to: { name: 'japanese-words' },
-            activeRouteNames: ['japanese-words']
-          },
-          {
-            label: 'Frases',
-            icon: 'pi pi-fw pi-comment',
-            to: { name: 'japanese-phrases' },
-            activeRouteNames: ['japanese-phrases']
-          },
-          {
-            label: 'Practicar',
-            icon: 'pi pi-fw pi-bolt',
-            to: { name: 'japanese-practice' },
-            activeRouteNames: ['japanese-practice']
           }
         ]
       }

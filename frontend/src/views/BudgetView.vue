@@ -75,21 +75,22 @@
             <i class="pi pi-wallet"></i>
           </div>
           <div class="stat-content">
-            <h3 class="stat-value" :class="{ 'negative': summary.balance < 0 }">
-              {{ formatCurrency(summary.balance) }}
+            <h3 class="stat-value" :class="{ 'negative': saldoReal < 0 }">
+              {{ formatCurrency(saldoReal) }}
             </h3>
-            <p class="stat-label">Balance Total</p>
+            <p class="stat-label">Saldo Actual</p>
+            <small class="stat-detail">Dinero real disponible segun ingresos y gastos registrados</small>
           </div>
         </div>
 
         <div class="stat-card stat-card-income">
           <div class="stat-icon">
-            <i class="pi pi-arrow-down"></i>
+            <i class="pi pi-lock"></i>
           </div>
           <div class="stat-content">
-            <h3 class="stat-value">{{ formatCurrency(summary.total_income) }}</h3>
-            <p class="stat-label">Ingresos Totales</p>
-            <small class="stat-detail">Cobrados: {{ formatCurrency(summary.charged_income) }}</small>
+            <h3 class="stat-value">{{ formatCurrency(pendienteReservado) }}</h3>
+            <p class="stat-label">Presupuesto Pendiente</p>
+            <small class="stat-detail">Dinero que todavia deberia reservarse para terminar el periodo</small>
           </div>
         </div>
 
@@ -98,20 +99,31 @@
             <i class="pi pi-arrow-up"></i>
           </div>
           <div class="stat-content">
-            <h3 class="stat-value">{{ formatCurrency(summary.total_expense) }}</h3>
-            <p class="stat-label">Gastos Totales</p>
-            <small class="stat-detail">Cobrados: {{ formatCurrency(summary.charged_expense) }}</small>
+            <h3 class="stat-value">{{ formatCurrency(excesoTotal) }}</h3>
+            <p class="stat-label">Exceso Acumulado</p>
+            <small class="stat-detail">Suma del sobre gasto de categorias excedidas</small>
           </div>
         </div>
 
         <div class="stat-card stat-card-pending">
           <div class="stat-icon">
-            <i class="pi pi-clock"></i>
+            <i class="pi pi-chart-line"></i>
           </div>
           <div class="stat-content">
-            <h3 class="stat-value">{{ formatCurrency(summary.pending_expense) }}</h3>
-            <p class="stat-label">Gastos Pendientes</p>
-            <small class="stat-detail">{{ summary.transactions_count }} transacciones</small>
+            <h3 class="stat-value" :class="{ 'negative': dineroLibreReal < 0 }">{{ formatCurrency(dineroLibreReal) }}</h3>
+            <p class="stat-label">Dinero Libre Real</p>
+            <small class="stat-detail">Saldo actual menos dinero comprometido pendiente</small>
+          </div>
+        </div>
+
+        <div class="stat-card stat-card-status" :class="`status-${financialStatusTone}`">
+          <div class="stat-icon">
+            <i :class="financialStatusMeta.icon"></i>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ financialStatusMeta.label }}</h3>
+            <p class="stat-label">Estado Financiero</p>
+            <small class="stat-detail">{{ financialStatusMeta.description }}</small>
           </div>
         </div>
       </div>
@@ -122,32 +134,32 @@
           <div class="feasibility-summary">
             <div class="feasibility-copy">
               <span class="feasibility-kicker">Resumen del presupuesto</span>
-              <h2>Viabilidad del presupuesto</h2>
+              <h2>Estado financiero del periodo</h2>
               <p>
-                {{ budgetIncomeGap > 0
-                  ? 'Con los ingresos actuales todavia no alcanza para cubrir todo lo planificado.'
-                  : feasibilitySurplus > 0
-                    ? 'Los ingresos actuales cubren lo planificado y dejan un excedente disponible.'
-                    : 'Los ingresos actuales alcanzan justo para cubrir lo planificado.' }}
+                {{ financialStatus === 'CRITICAL'
+                  ? 'El saldo actual ya no alcanza para cubrir todo lo que queda pendiente del presupuesto.'
+                  : financialStatus === 'WARNING'
+                    ? 'El presupuesto sigue en pie, pero ya existen categorias excedidas o no queda margen real.'
+                    : 'El saldo actual cubre lo pendiente y todavia mantiene dinero libre para el resto del periodo.' }}
               </p>
             </div>
 
             <div class="feasibility-metrics">
               <div class="feasibility-metric">
-                <span class="metric-label">Total planificado</span>
-                <strong class="metric-value">{{ formatCurrency(summary.total_planned || 0) }}</strong>
+                <span class="metric-label">Saldo actual</span>
+                <strong class="metric-value" :class="{ 'text-red': saldoReal < 0, 'text-green': saldoReal >= 0 }">{{ formatCurrency(saldoReal) }}</strong>
               </div>
-              <div class="feasibility-metric">
-                <span class="metric-label">Ingresos totales</span>
-                <strong class="metric-value text-green">{{ formatCurrency(feasibilityTotalIncome) }}</strong>
+              <div class="feasibility-metric" :class="pendienteReservado > 0 ? 'metric-alert' : 'metric-ok'">
+                <span class="metric-label">Pendiente reservado</span>
+                <strong class="metric-value">{{ formatCurrency(pendienteReservado) }}</strong>
               </div>
-              <div class="feasibility-metric" :class="budgetIncomeGap > 0 ? 'metric-alert' : 'metric-ok'">
-                <span class="metric-label">Valor faltante</span>
-                <strong class="metric-value">{{ formatCurrency(budgetIncomeGap) }}</strong>
+              <div class="feasibility-metric" :class="excesoTotal > 0 ? 'metric-alert' : 'metric-ok'">
+                <span class="metric-label">Exceso acumulado</span>
+                <strong class="metric-value">{{ formatCurrency(excesoTotal) }}</strong>
               </div>
-              <div class="feasibility-metric" :class="feasibilitySurplus > 0 ? 'metric-ok' : ''">
-                <span class="metric-label">Monto sobrante</span>
-                <strong class="metric-value">{{ formatCurrency(feasibilitySurplus) }}</strong>
+              <div class="feasibility-metric" :class="dineroLibreReal >= 0 ? 'metric-ok' : 'metric-alert'">
+                <span class="metric-label">Dinero libre real</span>
+                <strong class="metric-value">{{ formatCurrency(dineroLibreReal) }}</strong>
               </div>
             </div>
           </div>
@@ -224,8 +236,12 @@
             <Column field="category" header="Categoría" :sortable="true">
               <template #body="{ data, index }">
                 <div v-if="!editingBudgetItems" class="category-cell">
-                  
-                  <span>{{ data.category }}</span>
+                  <div class="category-copy">
+                    <span>{{ data.category }}</span>
+                    <small class="category-meta-inline">
+                      {{ formatBudgetCategoryType(getBudgetCategoryType(data)) }} · {{ formatBudgetItemStatus(getBudgetCategoryStatus(data)) }}
+                    </small>
+                  </div>
                 </div>
                 <Select
                   v-else
@@ -297,7 +313,7 @@
                     <div 
                       class="mini-progress-fill"
                       :class="getRemainingProgressClass(data)"
-                      :style="{ width: Math.min(getProgressPercentage(data), 100) + '%' }"
+                      :style="{ width: getRemainingProgressWidth(data) + '%' }"
                     ></div>
                   </div>
                 </div>
@@ -318,6 +334,21 @@
               </template>
             </Column>
           </DataTable>
+
+          <div
+            v-if="progressItemsSource.length > 0"
+            class="budget-items-totals"
+            :class="{ 'with-actions': editingBudgetItems }"
+          >
+            <div class="totals-cell totals-label">Totales</div>
+            <div class="totals-cell totals-value">{{ formatCurrency(progressTotals.planned) }}</div>
+            <div class="totals-cell totals-value spent">{{ formatCurrency(progressTotals.spent) }}</div>
+            <div class="totals-cell totals-value" :class="{ 'text-red': progressTotals.remaining < 0, 'text-green': progressTotals.remaining >= 0 }">
+              {{ formatCurrency(progressTotals.remaining) }}
+            </div>
+            <div class="totals-cell totals-placeholder">-</div>
+            <div v-if="editingBudgetItems" class="totals-cell totals-placeholder">-</div>
+          </div>
         </template>
       </Card>
 
@@ -326,30 +357,30 @@
           <div class="feasibility-summary">
             <div class="feasibility-copy">
               <span class="feasibility-kicker">Reserva operativa</span>
-              <h2>Balance tras cubrir lo restante</h2>
+              <h2>Proyeccion de cierre del mes</h2>
               <p>
-                {{ projectedAvailableBalance < 0
-                  ? 'Con el balance actual, todavia faltaria dinero para cubrir todo lo pendiente del presupuesto.'
-                  : projectedAvailableBalance > 0
-                    ? 'Tras reservar lo que queda por gastar, todavia mantienes saldo disponible.'
-                    : 'El balance actual cubre exactamente lo que queda pendiente en el presupuesto.' }}
+                {{ dineroLibreReal < 0
+                  ? 'El dinero libre real es negativo: hay riesgo claro de no terminar el mes con el saldo actual.'
+                  : excesoTotal > 0
+                    ? 'Aunque el saldo aguanta, ya existen categorias excedidas que conviene vigilar.'
+                    : 'El dinero libre real sigue en positivo y la proyeccion del mes es estable.' }}
               </p>
             </div>
 
             <div class="feasibility-metrics">
               <div class="feasibility-metric">
                 <span class="metric-label">Balance actual</span>
-                <strong class="metric-value" :class="{ 'text-red': currentTransactionBalance < 0, 'text-green': currentTransactionBalance >= 0 }">
-                  {{ formatCurrency(currentTransactionBalance) }}
+                <strong class="metric-value" :class="{ 'text-red': saldoReal < 0, 'text-green': saldoReal >= 0 }">
+                  {{ formatCurrency(saldoReal) }}
                 </strong>
               </div>
               <div class="feasibility-metric">
-                <span class="metric-label">Total restante</span>
-                <strong class="metric-value">{{ formatCurrency(totalRemainingProgress) }}</strong>
+                <span class="metric-label">Categorias excedidas</span>
+                <strong class="metric-value">{{ exceededCategoriesCount }}</strong>
               </div>
-              <div class="feasibility-metric" :class="projectedAvailableBalance >= 0 ? 'metric-ok' : 'metric-alert'">
-                <span class="metric-label">Balance disponible</span>
-                <strong class="metric-value">{{ formatCurrency(projectedAvailableBalance) }}</strong>
+              <div class="feasibility-metric" :class="dineroLibreReal >= 0 ? 'metric-ok' : 'metric-alert'">
+                <span class="metric-label">Dinero libre real</span>
+                <strong class="metric-value">{{ formatCurrency(dineroLibreReal) }}</strong>
               </div>
               <div class="feasibility-metric" :class="projectedCoverageGap > 0 ? 'metric-alert' : 'metric-ok'">
                 <span class="metric-label">Valor faltante</span>
@@ -997,9 +1028,94 @@ const resolveCategoryName = (categoryId) => {
   return categoryStore.categories.find((category) => category._id === categoryId)?.name || ''
 }
 
+const getCategoryRecord = (item) => {
+  if (item?.category_id) {
+    const categoryById = categoryStore.categories.find((category) => category._id === item.category_id)
+    if (categoryById) {
+      return categoryById
+    }
+  }
+
+  return categoryStore.categories.find((category) => category.name === item?.category) || null
+}
+
+const getBudgetCategoryType = (item) => {
+  return item?.budget_category_type || getCategoryRecord(item)?.budget_category_type || 'variable'
+}
+
+const getBudgetCategoryStatus = (item) => {
+  if (item?.budget_status) {
+    return item.budget_status
+  }
+
+  const remainingAmount = getRemainingAmount(item)
+  const budgetCategoryType = getBudgetCategoryType(item)
+
+  if (remainingAmount < 0) return 'exceeded'
+  if (budgetCategoryType === 'fixed') return remainingAmount === 0 ? 'paid' : 'pending'
+  return remainingAmount === 0 ? 'no_margin' : 'available'
+}
+
+const formatBudgetCategoryType = (type) => {
+  return budgetCategoryTypeLabels[type] || 'Variable'
+}
+
+const formatBudgetItemStatus = (status) => {
+  return budgetStatusLabels[status] || status
+}
+
+const isReservableBudgetItem = (item) => {
+  const categoryRecord = getCategoryRecord(item)
+  const categoryName = item?.category || categoryRecord?.name
+
+  if (categoryName === 'Transferido Cuentas') {
+    return false
+  }
+
+  if (categoryRecord && categoryRecord.is_active === false) {
+    return false
+  }
+
+  return !categoryRecord || categoryRecord.type === 'expense' || categoryRecord.type === 'both'
+}
+
 const hasBudgetItems = computed(() => {
   return Array.isArray(summary.value.budget_items) && summary.value.budget_items.length > 0
 })
+
+const budgetCategoryTypeLabels = {
+  fixed: 'Fijo',
+  variable: 'Variable'
+}
+
+const budgetStatusLabels = {
+  pending: 'Pendiente',
+  paid: 'Pagado',
+  available: 'Disponible',
+  no_margin: 'Sin margen',
+  exceeded: 'Excedido'
+}
+
+const financialStatusMetaMap = {
+  HEALTHY: {
+    label: 'Saludable',
+    icon: 'pi pi-check-circle',
+    tone: 'healthy',
+    description: 'El saldo actual alcanza para cubrir lo pendiente y aun deja margen real.'
+  },
+  WARNING: {
+    label: 'Atención',
+    icon: 'pi pi-exclamation-triangle',
+    tone: 'warning',
+    description: 'No sobra margen o ya existen categorias excedidas que requieren atencion.'
+  },
+  CRITICAL: {
+    label: 'Crítico',
+    icon: 'pi pi-times-circle',
+    tone: 'critical',
+    description: 'El saldo actual no alcanza para cubrir lo pendiente del periodo.'
+  }
+}
 
 const budgetBankBrand = computed(() => getBankBrand(budget.value?.bank))
 
@@ -1011,24 +1127,15 @@ const budgetBankStyle = computed(() => ({
   '--budget-bank-shadow': budgetBankBrand.value.shadow
 }))
 
-const feasibilityTotalIncome = computed(() => {
-  return transactionStore.transactions
-    .filter(transaction => transaction.budget_id === budgetId.value && transaction.type === 'income')
-    .reduce((sum, transaction) => sum + transaction.amount, 0)
-})
-
-const budgetIncomeGap = computed(() => {
-  const totalPlanned = summary.value.total_planned || 0
-  const totalIncome = feasibilityTotalIncome.value
-
-  return Math.max(totalPlanned - totalIncome, 0)
-})
-
-const feasibilitySurplus = computed(() => {
-  const totalPlanned = summary.value.total_planned || 0
-  const totalIncome = feasibilityTotalIncome.value
-
-  return Math.max(totalIncome - totalPlanned, 0)
+const saldoReal = computed(() => Number(summary.value.saldo_real ?? summary.value.balance ?? 0))
+const pendienteReservado = computed(() => Number(summary.value.pendiente_reservado ?? 0))
+const excesoTotal = computed(() => Number(summary.value.exceso_total ?? 0))
+const dineroLibreReal = computed(() => Number(summary.value.dinero_libre_real ?? (saldoReal.value - pendienteReservado.value)))
+const financialStatus = computed(() => summary.value.financial_status || 'HEALTHY')
+const financialStatusMeta = computed(() => financialStatusMetaMap[financialStatus.value] || financialStatusMetaMap.HEALTHY)
+const financialStatusTone = computed(() => financialStatusMeta.value.tone)
+const exceededCategoriesCount = computed(() => {
+  return summary.value.budget_items?.filter((item) => getBudgetCategoryStatus(item) === 'exceeded').length || 0
 })
 
 const sortedBudgetItems = computed(() => {
@@ -1102,21 +1209,34 @@ const budgetItemsForProjection = computed(() => {
 })
 
 const totalRemainingProgress = computed(() => {
-  return budgetItemsForProjection.value.reduce((sum, item) => sum + getRemainingAmount(item), 0)
+  return budgetItemsForProjection.value
+    .filter((item) => isReservableBudgetItem(item))
+    .reduce((sum, item) => sum + Math.max(getRemainingAmount(item), 0), 0)
 })
 
-const currentTransactionBalance = computed(() => {
-  return transactionStore.transactions.reduce((sum, transaction) => {
-    return sum + (transaction.type === 'income' ? transaction.amount : -transaction.amount)
-  }, 0)
+const progressItemsSource = computed(() => {
+  return editingBudgetItems.value ? tempBudgetItems.value : enrichedBudgetItems.value
+})
+
+const progressTotals = computed(() => {
+  return progressItemsSource.value.reduce((totals, item) => {
+    totals.planned += Number(item.planned_amount || 0)
+    totals.spent += Number(item.spent_amount || 0)
+    totals.remaining += getRemainingAmount(item)
+    return totals
+  }, {
+    planned: 0,
+    spent: 0,
+    remaining: 0
+  })
 })
 
 const projectedAvailableBalance = computed(() => {
-  return currentTransactionBalance.value - totalRemainingProgress.value
+  return dineroLibreReal.value
 })
 
 const projectedCoverageGap = computed(() => {
-  return Math.max(totalRemainingProgress.value - currentTransactionBalance.value, 0)
+  return Math.max(0 - dineroLibreReal.value, 0)
 })
 
 const filteredTransactions = computed(() => {
@@ -1397,6 +1517,10 @@ const getProgressPercentage = (item) => {
   return Math.min((item.spent_amount / item.planned_amount) * 100, 100)
 }
 
+const getRemainingProgressWidth = (item) => {
+  return Math.max(Math.min(getRemainingPercentage(item), 100), 0)
+}
+
 const getRemainingAmount = (item) => {
   return item.planned_amount - item.spent_amount
 }
@@ -1407,28 +1531,28 @@ const getRemainingPercentage = (item) => {
 }
 
 const getRemainingStateClass = (item) => {
-  const remainingPercentage = getRemainingPercentage(item)
+  const budgetStatus = getBudgetCategoryStatus(item)
 
-  if (remainingPercentage < 0) return 'remaining-negative'
-  if (Math.abs(remainingPercentage) < 0.05) return 'remaining-complete'
+  if (budgetStatus === 'exceeded') return 'remaining-negative'
+  if (budgetStatus === 'paid') return 'remaining-complete'
+  if (budgetStatus === 'no_margin') return 'remaining-no-margin'
+
+  const remainingPercentage = getRemainingPercentage(item)
   if (remainingPercentage <= 20) return 'remaining-low'
   if (remainingPercentage <= 50) return 'remaining-medium'
   return 'remaining-healthy'
 }
 
 const getRemainingStateLabel = (item) => {
-  const remainingPercentage = getRemainingPercentage(item)
-
-  if (remainingPercentage < 0) return 'Excedido'
-  if (Math.abs(remainingPercentage) < 0.05) return 'Cumplido'
-  return 'Restante'
+  return formatBudgetItemStatus(getBudgetCategoryStatus(item))
 }
 
 const getRemainingProgressClass = (item) => {
-  const remainingPercentage = getRemainingPercentage(item)
+  const budgetStatus = getBudgetCategoryStatus(item)
+  if (budgetStatus === 'exceeded') return 'progress-negative'
+  if (budgetStatus === 'no_margin') return 'progress-no-margin'
 
-  if (remainingPercentage < 0) return 'progress-negative'
-  if (Math.abs(remainingPercentage) < 0.05) return 'progress-complete'
+  const remainingPercentage = getRemainingPercentage(item)
   if (remainingPercentage <= 20) return 'progress-low'
   if (remainingPercentage <= 50) return 'progress-medium'
   return 'progress-healthy'
@@ -1839,6 +1963,18 @@ const saveBudgetItems = async () => {
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
 }
 
+.stat-card-status .stat-icon {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.stat-card-status.status-warning .stat-icon {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.stat-card-status.status-critical .stat-icon {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
 .stat-content {
   flex: 1;
 }
@@ -1852,6 +1988,18 @@ const saveBudgetItems = async () => {
 }
 
 .stat-value.negative {
+  color: #ef4444;
+}
+
+.stat-card-status.status-healthy .stat-value {
+  color: #0f8b6f;
+}
+
+.stat-card-status.status-warning .stat-value {
+  color: #d97706;
+}
+
+.stat-card-status.status-critical .stat-value {
   color: #ef4444;
 }
 
@@ -2403,6 +2551,52 @@ const saveBudgetItems = async () => {
   width: 2rem;
 }
 
+.budget-items-totals {
+  display: grid;
+  grid-template-columns: minmax(280px, 2.2fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr);
+  margin-top: 0.45rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface-card) 92%, transparent);
+}
+
+.budget-items-totals.with-actions {
+  grid-template-columns: minmax(280px, 2.2fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) 5rem;
+}
+
+.totals-cell {
+  min-height: 2rem;
+  padding: 0.32rem 0.45rem;
+  border-right: 1px solid var(--surface-border);
+  background: rgba(248, 250, 252, 0.92);
+  display: flex;
+  align-items: center;
+  font-size: 0.76rem;
+  line-height: 1.05;
+}
+
+.totals-cell:last-child {
+  border-right: 0;
+}
+
+.totals-label {
+  font-weight: 700;
+  color: var(--heading-color);
+}
+
+.totals-value {
+  justify-content: flex-end;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: var(--heading-color);
+}
+
+.totals-placeholder {
+  justify-content: center;
+  color: var(--text-color-secondary);
+}
+
 .transactions-table :deep(.p-datatable-thead > tr > th) {
   padding: 0.28rem 0.45rem;
   font-size: 0.78rem;
@@ -2621,6 +2815,20 @@ const saveBudgetItems = async () => {
   font-weight: 500;
 }
 
+.category-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+}
+
+.category-meta-inline {
+  color: var(--text-color-secondary);
+  font-size: 0.65rem;
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 .subcategory-indicator {
   color: var(--text-color-secondary);
   font-weight: 600;
@@ -2661,17 +2869,22 @@ const saveBudgetItems = async () => {
 
 .percentage-value.remaining-medium,
 .percentage-caption.remaining-medium {
-  color: #2563eb;
+  color: #d97706;
 }
 
 .percentage-value.remaining-low,
 .percentage-caption.remaining-low {
-  color: #d97706;
+  color: #ef4444;
 }
 
 .percentage-value.remaining-complete,
 .percentage-caption.remaining-complete {
-  color: var(--text-color-secondary);
+  color: #0f8b6f;
+}
+
+.percentage-value.remaining-no-margin,
+.percentage-caption.remaining-no-margin {
+  color: #d97706;
 }
 
 .percentage-value.remaining-negative,
@@ -2697,15 +2910,19 @@ const saveBudgetItems = async () => {
 }
 
 .mini-progress-fill.progress-medium {
-  background: #3b82f6;
-}
-
-.mini-progress-fill.progress-low {
   background: #f59e0b;
 }
 
+.mini-progress-fill.progress-low {
+  background: #ef4444;
+}
+
 .mini-progress-fill.progress-complete {
-  background: #94a3b8;
+  background: #10b981;
+}
+
+.mini-progress-fill.progress-no-margin {
+  background: #f59e0b;
 }
 
 .mini-progress-fill.progress-negative {
@@ -2773,6 +2990,21 @@ const saveBudgetItems = async () => {
   .feasibility-metrics {
     grid-template-columns: 1fr;
     width: 100%;
+  }
+
+  .budget-items-totals,
+  .budget-items-totals.with-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .totals-cell {
+    justify-content: space-between;
+    border-right: 0;
+    border-bottom: 1px solid var(--surface-border);
+  }
+
+  .totals-cell:last-child {
+    border-bottom: 0;
   }
 
   .header-filters {

@@ -22,10 +22,10 @@
           <p>Prepara una entrada generica para viajes, compras o eventos.</p>
         </button>
 
-        <button type="button" class="quick-action-card is-live japanese-action" @click="navigateToJapanesePractice">
-          <span class="quick-action-icon"><i class="pi pi-language"></i></span>
-          <strong>Practicar japones</strong>
-          <p>Sesiones cortas de palabras y frases para repeticion diaria.</p>
+        <button type="button" class="quick-action-card is-live" @click="navigateToRegistryTimeline">
+          <span class="quick-action-icon"><i class="pi pi-calendar-clock"></i></span>
+          <strong>Timeline registro</strong>
+          <p>Consulta viajes, fechas y compras en una vista cronologica unificada.</p>
         </button>
       </div>
     </section>
@@ -137,43 +137,6 @@
           </template>
         </Card>
 
-        <Card class="app-card app-card-language">
-          <template #content>
-            <div class="app-card-head">
-              <div>
-                <span class="app-badge app-badge-planned">Nuevo modulo</span>
-                <h3>Aprendizaje de japones</h3>
-                <p>Una mini app ligera para consumir vocabulario y frases con sesiones cortas, repetibles y directas.</p>
-              </div>
-              <div class="app-mark">03</div>
-            </div>
-
-            <div class="preview-list compact-preview-list">
-              <div class="preview-item">
-                <strong>Palabras</strong>
-                <span>Listas cortas de lectura rapida.</span>
-              </div>
-              <div class="preview-item">
-                <strong>Frases</strong>
-                <span>Bloques utiles para repeticion diaria.</span>
-              </div>
-              <div class="preview-item">
-                <strong>Practica</strong>
-                <span>Consumo simple, enfocado y sin friccion.</span>
-              </div>
-            </div>
-
-            <div class="app-footer-strip">
-              <span class="info-pill muted-pill"><i class="pi pi-bolt"></i> Repeticion rapida</span>
-              <span class="info-pill muted-pill"><i class="pi pi-refresh"></i> Micro sesiones</span>
-            </div>
-
-            <div class="app-card-actions">
-              <Button label="Abrir" icon="pi pi-arrow-right" severity="warning" @click="navigateToJapanese" />
-              <Button label="Practicar" icon="pi pi-bolt" text @click="navigateToJapanesePractice" />
-            </div>
-          </template>
-        </Card>
       </div>
     </section>
 
@@ -206,12 +169,6 @@
           <small>Abrir vista de registros</small>
         </button>
 
-        <button type="button" class="continue-card continue-card-live japanese-continue" @click="navigateToJapaneseWords">
-          <span class="continue-tag">Japonés</span>
-          <strong>Lista de palabras N5</strong>
-          <p>Entrada ligera para consumo rapido y repeticion diaria.</p>
-          <small>Abrir lista de palabras</small>
-        </button>
       </div>
     </section>
 
@@ -317,18 +274,6 @@ const navigateToRegistryRecords = () => {
 
 const navigateToRegistryTimeline = () => {
   router.push({ name: 'registry-timeline' })
-}
-
-const navigateToJapanese = () => {
-  router.push({ name: 'japanese-hub' })
-}
-
-const navigateToJapaneseWords = () => {
-  router.push({ name: 'japanese-words' })
-}
-
-const navigateToJapanesePractice = () => {
-  router.push({ name: 'japanese-practice' })
 }
 
 const navigateToBudgetDetail = (budgetId) => {
@@ -561,12 +506,6 @@ const navigateToBudgetDetail = (budgetId) => {
 .metadata-action .quick-action-icon,
 .metadata-continue .continue-tag {
   background: linear-gradient(145deg, #2563eb 0%, #60a5fa 100%);
-  color: white;
-}
-
-.japanese-action .quick-action-icon,
-.japanese-continue .continue-tag {
-  background: linear-gradient(145deg, #d97706 0%, #f59e0b 100%);
   color: white;
 }
 

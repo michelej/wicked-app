@@ -5,6 +5,9 @@ from decimal import Decimal
 
 
 BankName = Literal["BBVA", "ING Direct"]
+BudgetCategoryType = Literal["fixed", "variable"]
+BudgetCategoryStatus = Literal["pending", "paid", "available", "no_margin", "exceeded"]
+FinancialStatus = Literal["HEALTHY", "WARNING", "CRITICAL"]
 
 
 class BudgetItem(BaseModel):
@@ -25,6 +28,14 @@ class BudgetItem(BaseModel):
         json_encoders = {
             Decimal: lambda v: float(v)
         }
+
+
+class BudgetSummaryItem(BudgetItem):
+    remaining_amount: Decimal = Field(default=Decimal(0), decimal_places=2)
+    remaining_percentage: Decimal = Field(default=Decimal(0), decimal_places=2)
+    budget_category_type: BudgetCategoryType = "variable"
+    budget_status: BudgetCategoryStatus = "available"
+    is_active: bool = True
 
 
 class PlanningTemporaryIncome(BaseModel):
@@ -117,8 +128,27 @@ class BudgetSummary(BaseModel):
     charged_expense: Decimal
     pending_income: Decimal
     pending_expense: Decimal
+    saldo_real: Decimal
+    pendiente_reservado: Decimal
+    exceso_total: Decimal
+    dinero_libre_real: Decimal
+    financial_status: FinancialStatus
     transactions_count: int
-    budget_items: List[BudgetItem] = Field(default_factory=list)
+    budget_items: List[BudgetSummaryItem] = Field(default_factory=list)
+
+
+class BudgetFinancialSummary(BaseModel):
+    budget_id: str
+    saldo_real: Decimal
+    pendiente_reservado: Decimal
+    exceso_total: Decimal
+    dinero_libre_real: Decimal
+    financial_status: FinancialStatus
+
+    class Config:
+        json_encoders = {
+            Decimal: lambda v: float(v)
+        }
 
     class Config:
         json_encoders = {

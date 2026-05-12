@@ -147,6 +147,7 @@ const containerClass = computed(() => [
 
 const linkClass = computed(() => [
   'p-ripple',
+  props.item.featuredTone ? `is-featured-${props.item.featuredTone}` : null,
   {
     'is-featured': props.item.featured,
     'is-disabled': props.item.disabled,
@@ -249,6 +250,7 @@ const isExactActive = computed(() => {
   box-shadow: 0 14px 24px rgba(15, 139, 111, 0.1);
 }
 
+
 .layout-submenu a.is-featured {
   background: linear-gradient(135deg, rgba(15, 139, 111, 0.12) 0%, rgba(37, 99, 235, 0.08) 100%);
   border-color: rgba(15, 139, 111, 0.14);
@@ -261,6 +263,48 @@ const isExactActive = computed(() => {
 
 .layout-submenu a.is-featured .layout-menuitem-icon {
   color: #0f8b6f;
+}
+
+.layout-submenu a.is-featured-finance {
+  background: linear-gradient(135deg, rgba(15, 139, 111, 0.14) 0%, rgba(217, 119, 6, 0.08) 100%);
+  border-color: rgba(15, 139, 111, 0.2);
+}
+
+.layout-submenu a.is-featured-finance .layout-menuitem-icon,
+.layout-submenu a.is-featured-finance .layout-menuitem-badge {
+  color: #0f8b6f;
+}
+
+.layout-submenu a.is-featured-finance .layout-menuitem-badge {
+  background: rgba(15, 139, 111, 0.12);
+}
+
+.layout-submenu a.is-featured-registry {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.14) 0%, rgba(14, 165, 233, 0.08) 100%);
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+.layout-submenu a.is-featured-registry .layout-menuitem-icon,
+.layout-submenu a.is-featured-registry .layout-menuitem-badge {
+  color: #2563eb;
+}
+
+.layout-submenu a.is-featured-registry .layout-menuitem-badge {
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.layout-submenu a.is-featured-language {
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.14) 0%, rgba(245, 158, 11, 0.08) 100%);
+  border-color: rgba(217, 119, 6, 0.2);
+}
+
+.layout-submenu a.is-featured-language .layout-menuitem-icon,
+.layout-submenu a.is-featured-language .layout-menuitem-badge {
+  color: #d97706;
+}
+
+.layout-submenu a.is-featured-language .layout-menuitem-badge {
+  background: rgba(217, 119, 6, 0.12);
 }
 
 .layout-submenu a.router-link-active::before {

@@ -34,6 +34,7 @@ class Database:
         await db.recurring_expenses.create_index("category_id")
         await db.categories.create_index("name", unique=True)
         await db.categories.create_index("type")
+        await db.categories.create_index("budget_category_type")
         await db.categories.create_index("is_active")
         await db.registry_items.create_index("type")
         await db.registry_items.create_index("status")
