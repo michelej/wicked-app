@@ -218,12 +218,30 @@
         <template #content>
           <!-- Add Category Button (Edit Mode) -->
           <div v-if="editingBudgetItems" class="add-category-section">
-            <Button
-              label="Agregar Categoría"
-              icon="pi pi-plus"
-              size="small"
-              @click="addNewBudgetItem"
-            />
+            <div class="editing-toolbar">
+              <Button
+                label="Agregar Categoría"
+                icon="pi pi-plus"
+                size="small"
+                @click="addNewBudgetItem"
+              />
+
+              <div v-if="balanceClipboard" class="balance-clipboard-pill">
+                <span class="clipboard-label">Clipboard activo</span>
+                <strong>{{ formatCurrency(balanceClipboard.amount) }}</strong>
+                <small>Extraido de {{ balanceClipboard.sourceCategoryName }}</small>
+              </div>
+
+              <Button
+                v-if="balanceClipboard"
+                label="Reiniciar"
+                icon="pi pi-replay"
+                size="small"
+                severity="secondary"
+                outlined
+                @click="resetBudgetBalanceClipboard"
+              />
+            </div>
           </div>
 
           <DataTable
@@ -322,15 +340,33 @@
 
            
 
-            <Column v-if="editingBudgetItems" header="Acciones" :exportable="false" style="width: 5rem">
-              <template #body="{ index }">
-                <Button
-                  icon="pi pi-trash"
-                  size="small"
-                  text
-                  severity="danger"
-                  @click="removeBudgetItem(index)"
-                />
+            <Column v-if="editingBudgetItems" header="Acciones" :exportable="false" style="width: 14rem">
+              <template #body="{ data, index }">
+                <div class="budget-item-actions">
+                  <Button
+                    label="Extraer"
+                    size="small"
+                    text
+                    severity="warning"
+                    :disabled="!canExtractBudgetBalance(data)"
+                    @click="extractBudgetBalance(data)"
+                  />
+                  <Button
+                    label="Incluir"
+                    size="small"
+                    text
+                    severity="success"
+                    :disabled="!balanceClipboard"
+                    @click="includeBudgetBalance(data)"
+                  />
+                  <Button
+                    icon="pi pi-trash"
+                    size="small"
+                    text
+                    severity="danger"
+                    @click="removeBudgetItem(index)"
+                  />
+                </div>
               </template>
             </Column>
           </DataTable>
@@ -965,6 +1001,7 @@ const transactionToDelete = ref(null)
 const selectedRecurring = ref([])
 const editingBudgetItems = ref(false)
 const tempBudgetItems = ref([])
+const balanceClipboard = ref(null)
 
 const budgetBankOptions = BUDGET_BANK_OPTIONS
 
@@ -1027,6 +1064,18 @@ const resolveCategoryName = (categoryId) => {
 
   return categoryStore.categories.find((category) => category._id === categoryId)?.name || ''
 }
+
+const roundMoney = (value) => {
+  return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100
+}
+
+const createTempBudgetItem = (item = {}) => ({
+  temp_id: item.temp_id || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  category_id: item.category_id || '',
+  category: item.category || '',
+  planned_amount: Number(item.planned_amount || 0),
+  spent_amount: Number(item.spent_amount || 0)
+})
 
 const getCategoryRecord = (item) => {
   if (item?.category_id) {
@@ -1582,6 +1631,75 @@ const rowClass = (data) => {
   return ''
 }
 
+const clearBudgetBalanceClipboard = () => {
+  balanceClipboard.value = null
+}
+
+const canExtractBudgetBalance = (item) => {
+  return !balanceClipboard.value && getRemainingAmount(item) > 0
+}
+
+const extractBudgetBalance = (item) => {
+  if (balanceClipboard.value) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Clipboard ocupado',
+      detail: 'Primero incluye o reinicia el importe ya extraído.',
+      life: 3000
+    })
+    return
+  }
+
+  const amountToExtract = roundMoney(getRemainingAmount(item))
+  if (amountToExtract <= 0) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Sin importe disponible',
+      detail: 'Solo puedes extraer categorias con restante positivo.',
+      life: 3000
+    })
+    return
+  }
+
+  item.planned_amount = roundMoney(item.planned_amount - amountToExtract)
+  balanceClipboard.value = {
+    amount: amountToExtract,
+    sourceTempId: item.temp_id,
+    sourceCategoryId: item.category_id,
+    sourceCategoryName: resolveCategoryName(item.category_id) || item.category || 'Categoría'
+  }
+}
+
+const includeBudgetBalance = (item) => {
+  if (!balanceClipboard.value) {
+    return
+  }
+
+  item.planned_amount = roundMoney(item.planned_amount + balanceClipboard.value.amount)
+  clearBudgetBalanceClipboard()
+}
+
+const resetBudgetBalanceClipboard = () => {
+  if (!balanceClipboard.value) {
+    return
+  }
+
+  const sourceItem = tempBudgetItems.value.find((item) => item.temp_id === balanceClipboard.value.sourceTempId)
+  if (!sourceItem) {
+    toast.add({
+      severity: 'error',
+      summary: 'No se pudo reiniciar',
+      detail: 'La categoría origen ya no está disponible para devolver el importe.',
+      life: 3500
+    })
+    clearBudgetBalanceClipboard()
+    return
+  }
+
+  sourceItem.planned_amount = roundMoney(sourceItem.planned_amount + balanceClipboard.value.amount)
+  clearBudgetBalanceClipboard()
+}
+
 const closeTransactionDialog = () => {
   showTransactionDialog.value = false
   editingTransaction.value = null
@@ -1730,31 +1848,50 @@ const applyRecurringExpenses = async () => {
 // Budget Items Editing Functions
 const startEditingBudgetItems = () => {
   editingBudgetItems.value = true
-  tempBudgetItems.value = JSON.parse(JSON.stringify(budget.value.budget_items || [])).map((item) => ({
+  tempBudgetItems.value = JSON.parse(JSON.stringify(budget.value.budget_items || [])).map((item) => createTempBudgetItem({
     ...item,
     category_id: resolveCategoryId(item.category_id || item.category)
   }))
+  clearBudgetBalanceClipboard()
 }
 
 const cancelEditingBudgetItems = () => {
   editingBudgetItems.value = false
   tempBudgetItems.value = []
+  clearBudgetBalanceClipboard()
 }
 
 const addNewBudgetItem = () => {
-  tempBudgetItems.value.push({
-    category_id: '',
-    planned_amount: 0,
-    spent_amount: 0
-  })
+  tempBudgetItems.value.push(createTempBudgetItem())
 }
 
 const removeBudgetItem = (index) => {
+  const targetItem = tempBudgetItems.value[index]
+  if (balanceClipboard.value?.sourceTempId === targetItem?.temp_id) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Reinicio pendiente',
+      detail: 'No puedes eliminar la categoría origen mientras el clipboard siga activo.',
+      life: 3000
+    })
+    return
+  }
+
   tempBudgetItems.value.splice(index, 1)
 }
 
 const saveBudgetItems = async () => {
   try {
+    if (balanceClipboard.value) {
+      toast.add({
+        severity: 'warn',
+        summary: 'Clipboard activo',
+        detail: 'Incluye o reinicia el importe extraído antes de guardar.',
+        life: 3500
+      })
+      return
+    }
+
     // Validate that all items have a category and amount
     const invalidItems = tempBudgetItems.value.filter(item => !item.category_id || !item.planned_amount)
     if (invalidItems.length > 0) {
@@ -1769,7 +1906,9 @@ const saveBudgetItems = async () => {
 
     await budgetStore.updateBudget(budgetId.value, {
       budget_items: tempBudgetItems.value.map((item) => ({
-        ...item,
+        category_id: item.category_id,
+        planned_amount: item.planned_amount,
+        spent_amount: item.spent_amount,
         category: resolveCategoryName(item.category_id)
       }))
     })
@@ -1783,6 +1922,7 @@ const saveBudgetItems = async () => {
 
     editingBudgetItems.value = false
     tempBudgetItems.value = []
+    clearBudgetBalanceClipboard()
     await loadBudget()
   } catch (err) {
     toast.add({
@@ -2506,6 +2646,41 @@ const saveBudgetItems = async () => {
   border-radius: 10px;
 }
 
+.editing-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.balance-clipboard-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.clipboard-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #b45309;
+}
+
+.balance-clipboard-pill strong {
+  font-family: 'Courier New', monospace;
+  color: var(--heading-color);
+}
+
+.balance-clipboard-pill small {
+  color: var(--text-color-secondary);
+}
+
 .add-category-section :deep(.p-button) {
   padding: 0.38rem 0.65rem;
   font-size: 0.75rem;
@@ -2595,6 +2770,14 @@ const saveBudgetItems = async () => {
 .totals-placeholder {
   justify-content: center;
   color: var(--text-color-secondary);
+}
+
+.budget-item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.15rem;
+  flex-wrap: wrap;
 }
 
 .transactions-table :deep(.p-datatable-thead > tr > th) {
