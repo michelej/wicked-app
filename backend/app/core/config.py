@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     # API settings
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
+
+    # External APIs
+    TMDB_API_KEY: str = ""
+    TMDB_BASE_URL: str = "https://api.themoviedb.org/3"
+    TMDB_IMAGE_BASE_URL: str = "https://image.tmdb.org/t/p/w500"
     
     model_config = SettingsConfigDict(
         env_file=str(ENV_FILE_PATH),

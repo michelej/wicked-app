@@ -8,6 +8,7 @@ from app.api.endpoints import (
     recurring_expenses,
     dashboard,
     registry_items,
+    watchlist,
 )
 
 router = APIRouter()
@@ -21,3 +22,4 @@ router.include_router(imported_transactions.router)
 router.include_router(recurring_expenses.router)
 router.include_router(dashboard.router)
 router.include_router(registry_items.router)
+router.include_router(watchlist.router)

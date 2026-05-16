@@ -84,6 +84,26 @@ const router = createRouter({
           component: () => import('@/views/RegistryHub.vue')
         },
         {
+          path: 'watchlist',
+          name: 'watchlist-all',
+          component: () => import('@/views/WatchlistHub.vue')
+        },
+        {
+          path: 'watchlist/to-watch',
+          name: 'watchlist-to-watch',
+          component: () => import('@/views/WatchlistHub.vue')
+        },
+        {
+          path: 'watchlist/watching',
+          name: 'watchlist-watching',
+          component: () => import('@/views/WatchlistHub.vue')
+        },
+        {
+          path: 'watchlist/watched',
+          name: 'watchlist-watched',
+          component: () => import('@/views/WatchlistHub.vue')
+        },
+        {
           path: 'metadata',
           redirect: { name: 'registry-all' }
         },

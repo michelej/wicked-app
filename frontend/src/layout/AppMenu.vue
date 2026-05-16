@@ -161,6 +161,41 @@ const model = ref([
             activeRouteNames: ['registry-archived']
           }
         ]
+      },
+      {
+        label: 'Series y Películas',
+        icon: 'pi pi-fw pi-video',
+        featured: true,
+        featuredTone: 'media',
+        to: { name: 'watchlist-all' },
+        activeRouteNames: ['watchlist-all', 'watchlist-to-watch', 'watchlist-watching', 'watchlist-watched'],
+        command: () => router.push({ name: 'watchlist-all' }),
+        items: [
+          {
+            label: 'Todo',
+            icon: 'pi pi-fw pi-table',
+            to: { name: 'watchlist-all' },
+            activeRouteNames: ['watchlist-all']
+          },
+          {
+            label: 'Por ver',
+            icon: 'pi pi-fw pi-bookmark',
+            to: { name: 'watchlist-to-watch' },
+            activeRouteNames: ['watchlist-to-watch']
+          },
+          {
+            label: 'Viendo',
+            icon: 'pi pi-fw pi-play-circle',
+            to: { name: 'watchlist-watching' },
+            activeRouteNames: ['watchlist-watching']
+          },
+          {
+            label: 'Vistas',
+            icon: 'pi pi-fw pi-check-circle',
+            to: { name: 'watchlist-watched' },
+            activeRouteNames: ['watchlist-watched']
+          }
+        ]
       }
     ]
   }

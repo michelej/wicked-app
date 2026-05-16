@@ -307,6 +307,20 @@ const isExactActive = computed(() => {
   background: rgba(217, 119, 6, 0.12);
 }
 
+.layout-submenu a.is-featured-media {
+  background: linear-gradient(135deg, rgba(219, 39, 119, 0.14) 0%, rgba(99, 102, 241, 0.08) 100%);
+  border-color: rgba(219, 39, 119, 0.2);
+}
+
+.layout-submenu a.is-featured-media .layout-menuitem-icon,
+.layout-submenu a.is-featured-media .layout-menuitem-badge {
+  color: #db2777;
+}
+
+.layout-submenu a.is-featured-media .layout-menuitem-badge {
+  background: rgba(219, 39, 119, 0.12);
+}
+
 .layout-submenu a.router-link-active::before {
   content: '';
   position: absolute;

@@ -46,6 +46,10 @@ class Database:
         await db.registry_items.create_index("amount")
         await db.registry_items.create_index("relatedEntities.entityType")
         await db.registry_items.create_index("relatedEntities.entityId")
+        await db.watch_items.create_index([("tmdb_id", 1), ("media_type", 1)], unique=True)
+        await db.watch_items.create_index("status")
+        await db.watch_items.create_index("media_type")
+        await db.watch_items.create_index("updated_at")
     
     @staticmethod
     async def close_db():

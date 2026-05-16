@@ -27,6 +27,12 @@
           <strong>Timeline registro</strong>
           <p>Consulta viajes, fechas y compras en una vista cronologica unificada.</p>
         </button>
+
+        <button type="button" class="quick-action-card is-live watch-action" @click="navigateToWatchlistToWatch">
+          <span class="quick-action-icon"><i class="pi pi-video"></i></span>
+          <strong>Añadir a pendientes</strong>
+          <p>Empieza tu lista de series y peliculas por ver dentro del hub.</p>
+        </button>
       </div>
     </section>
 
@@ -137,6 +143,48 @@
           </template>
         </Card>
 
+        <Card class="app-card app-card-watchlist">
+          <template #content>
+            <div class="app-card-head">
+              <div>
+                <span class="app-badge app-badge-planned">Nuevo modulo</span>
+                <h3>Series y Películas</h3>
+                <p>Una lista personal para guardar lo que quieres ver, lo que estás viendo y lo que ya terminaste.</p>
+              </div>
+              <div class="app-mark">03</div>
+            </div>
+
+            <div class="app-metrics-grid">
+              <div class="app-metric-tile">
+                <span>Totales</span>
+                <strong>{{ watchlistSnapshot.total }}</strong>
+              </div>
+              <div class="app-metric-tile">
+                <span>Por ver</span>
+                <strong>{{ watchlistSnapshot.toWatch }}</strong>
+              </div>
+              <div class="app-metric-tile">
+                <span>Viendo</span>
+                <strong>{{ watchlistSnapshot.watching }}</strong>
+              </div>
+              <div class="app-metric-tile">
+                <span>Vistas</span>
+                <strong>{{ watchlistSnapshot.watched }}</strong>
+              </div>
+            </div>
+
+            <div class="app-footer-strip">
+              <span class="info-pill muted-pill"><i class="pi pi-search"></i> Integración TMDb</span>
+              <span class="info-pill muted-pill"><i class="pi pi-check-circle"></i> Estados simples</span>
+            </div>
+
+            <div class="app-card-actions">
+              <Button label="Abrir" icon="pi pi-arrow-right" severity="warning" @click="navigateToWatchlist" />
+              <Button label="Pendientes" icon="pi pi-bookmark" text @click="navigateToWatchlistToWatch" />
+            </div>
+          </template>
+        </Card>
+
       </div>
     </section>
 
@@ -167,6 +215,13 @@
           <strong>Registro de viaje</strong>
           <p>Plantilla lista para viajes, eventos o compras con contexto.</p>
           <small>Abrir vista de registros</small>
+        </button>
+
+        <button type="button" class="continue-card continue-card-live watch-continue" @click="navigateToWatchlistWatching">
+          <span class="continue-tag">Series y Películas</span>
+          <strong>Continuar viendo</strong>
+          <p>{{ watchlistSnapshot.watching }} títulos en progreso y {{ watchlistSnapshot.toWatch }} pendientes de empezar.</p>
+          <small>Abrir seguimiento</small>
         </button>
 
       </div>
@@ -203,15 +258,20 @@
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBudgetStore } from '@/stores/budgets'
+import { useWatchlistStore } from '@/stores/watchlist'
 import { useFormatters } from '@/composables/useFormatters'
 import ProgressSpinner from 'primevue/progressspinner'
 
 const router = useRouter()
 const budgetStore = useBudgetStore()
+const watchlistStore = useWatchlistStore()
 const { formatCurrency, formatDate } = useFormatters()
 
 onMounted(async () => {
-  await budgetStore.fetchBudgets()
+  await Promise.all([
+    budgetStore.fetchBudgets(),
+    watchlistStore.fetchItems()
+  ])
   await budgetStore.getBudgetSummaries(budgetStore.activeBudgets.map((budget) => budget._id))
 })
 
@@ -239,6 +299,12 @@ const budgetsNeedingAttention = computed(() => {
 })
 
 const recentBudgets = computed(() => activeBudgets.value.slice(0, 3))
+const watchlistSnapshot = computed(() => ({
+  total: watchlistStore.items.length,
+  toWatch: watchlistStore.toWatchItems.length,
+  watching: watchlistStore.watchingItems.length,
+  watched: watchlistStore.watchedItems.length
+}))
 
 const budgetSnapshotLabel = computed(() => {
   if (budgetStore.loading && activeBudgets.value.length === 0) {
@@ -274,6 +340,18 @@ const navigateToRegistryRecords = () => {
 
 const navigateToRegistryTimeline = () => {
   router.push({ name: 'registry-timeline' })
+}
+
+const navigateToWatchlist = () => {
+  router.push({ name: 'watchlist-all' })
+}
+
+const navigateToWatchlistToWatch = () => {
+  router.push({ name: 'watchlist-to-watch' })
+}
+
+const navigateToWatchlistWatching = () => {
+  router.push({ name: 'watchlist-watching' })
 }
 
 const navigateToBudgetDetail = (budgetId) => {
@@ -487,7 +565,7 @@ const navigateToBudgetDetail = (budgetId) => {
 }
 
 .quick-actions-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .quick-action-card {
@@ -506,6 +584,12 @@ const navigateToBudgetDetail = (budgetId) => {
 .metadata-action .quick-action-icon,
 .metadata-continue .continue-tag {
   background: linear-gradient(145deg, #2563eb 0%, #60a5fa 100%);
+  color: white;
+}
+
+.watch-action .quick-action-icon,
+.watch-continue .continue-tag {
+  background: linear-gradient(145deg, #db2777 0%, #7c3aed 100%);
   color: white;
 }
 
@@ -531,6 +615,12 @@ const navigateToBudgetDetail = (budgetId) => {
 
 .apps-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.app-card-watchlist .app-badge,
+.app-card-watchlist .app-badge-planned {
+  background: rgba(219, 39, 119, 0.12);
+  color: #be185d;
 }
 
 .app-card {
