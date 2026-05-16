@@ -22,9 +22,9 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://localhost:5173",
-        "http://localhost:8080",
+        "http://localhost:8000",
         "http://wickednas:5173",
-        "http://wickednas:8080",
+        "http://wickednas:8000",
     ]
     
     # API settings
