@@ -1,3 +1,6 @@
+import json
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 from typing import List
@@ -16,7 +19,13 @@ class Settings(BaseSettings):
     MONGODB_DB_NAME: str = "wicked_db"
     
     # CORS settings
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://wickednas:5173"]
+    CORS_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8080",
+        "http://wickednas:5173",
+        "http://wickednas:8080",
+    ]
     
     # API settings
     API_HOST: str = "0.0.0.0"
@@ -31,6 +40,24 @@ class Settings(BaseSettings):
         env_file=str(ENV_FILE_PATH),
         case_sensitive=True
     )
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, value):
+        if isinstance(value, list):
+            return value
+
+        if isinstance(value, str):
+            stripped_value = value.strip()
+            if not stripped_value:
+                return []
+
+            if stripped_value.startswith("["):
+                return json.loads(stripped_value)
+
+            return [origin.strip() for origin in stripped_value.split(",") if origin.strip()]
+
+        return value
 
 
 settings = Settings()
