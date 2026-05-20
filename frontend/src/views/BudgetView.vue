@@ -495,6 +495,8 @@
             :rows="10"
             :rowsPerPageOptions="[10, 20, 50]"
             class="transactions-table"
+            :rowClass="transactionRowClass"
+            @row-click="toggleTransactionHighlight"
           >
             <template #empty>
               <div class="empty-state">
@@ -949,7 +951,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBudgetStore } from '@/stores/budgets'
 import { useTransactionStore } from '@/stores/transactions'
@@ -1002,6 +1004,7 @@ const selectedRecurring = ref([])
 const editingBudgetItems = ref(false)
 const tempBudgetItems = ref([])
 const balanceClipboard = ref(null)
+const highlightedTransactionIds = ref([])
 
 const budgetBankOptions = BUDGET_BANK_OPTIONS
 
@@ -1331,6 +1334,13 @@ const transactionsWithBalance = computed(() => {
   return transactionsWithBalance.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
 })
 
+watch(
+  () => transactionsWithBalance.value.map((transaction) => transaction._id),
+  (visibleTransactionIds) => {
+    highlightedTransactionIds.value = highlightedTransactionIds.value.filter((id) => visibleTransactionIds.includes(id))
+  }
+)
+
 const transactionSummary = computed(() => {
   const transactions = filteredTransactions.value
   
@@ -1629,6 +1639,29 @@ const rowClass = (data) => {
     return 'over-budget-row'
   }
   return ''
+}
+
+const transactionRowClass = (data) => {
+  return highlightedTransactionIds.value.includes(data._id) ? 'highlighted-transaction-row' : ''
+}
+
+const toggleTransactionHighlight = (event) => {
+  const clickTarget = event.originalEvent?.target
+  if (clickTarget?.closest('button, .p-button, a, input, textarea, select, [role="button"]')) {
+    return
+  }
+
+  const transactionId = event.data?._id
+  if (!transactionId) {
+    return
+  }
+
+  if (highlightedTransactionIds.value.includes(transactionId)) {
+    highlightedTransactionIds.value = highlightedTransactionIds.value.filter((id) => id !== transactionId)
+    return
+  }
+
+  highlightedTransactionIds.value = [...highlightedTransactionIds.value, transactionId]
 }
 
 const clearBudgetBalanceClipboard = () => {
@@ -2791,6 +2824,18 @@ const saveBudgetItems = async () => {
   vertical-align: middle;
   font-size: 0.78rem;
   line-height: 1.15;
+}
+
+.transactions-table :deep(.p-datatable-tbody > tr) {
+  cursor: pointer;
+}
+
+.transactions-table :deep(.p-datatable-tbody > tr.highlighted-transaction-row > td) {
+  background: rgba(250, 204, 21, 0.24) !important;
+}
+
+.transactions-table :deep(.p-datatable-tbody > tr.highlighted-transaction-row:hover > td) {
+  background: rgba(250, 204, 21, 0.32) !important;
 }
 
 .transactions-table :deep(.p-tag) {
