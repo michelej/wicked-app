@@ -8,6 +8,7 @@
         </div>
 
         <Button
+          v-if="!isMobileView"
           label="Planificar mes siguiente"
           icon="pi pi-calendar"
           severity="secondary"
@@ -17,6 +18,7 @@
         />
 
         <Button
+          v-if="!isMobileView"
           label="Nuevo Presupuesto"
           icon="pi pi-plus"
           severity="success"
@@ -83,7 +85,7 @@
       <h2>No hay presupuestos {{ currentTab === 'active' ? 'activos' : currentTab === 'closed' ? 'cerrados' : 'en borrador' }}</h2>
       <p>{{ currentTab === 'active' ? 'Crea tu primer presupuesto activo' : 'No tienes presupuestos en esta categoría' }}</p>
       <Button
-        v-if="currentTab === 'active'"
+        v-if="currentTab === 'active' && !isMobileView"
         label="Crear Presupuesto"
         icon="pi pi-plus"
         @click="showCreateDialog = true"
@@ -465,6 +467,7 @@ import { useRouter } from 'vue-router'
 import { useBudgetStore } from '@/stores/budgets'
 import { useCategoryStore } from '@/stores/categories'
 import { useFormatters } from '@/composables/useFormatters'
+import { useMobile } from '@/composables/useMobile'
 import { BUDGET_BANK_OPTIONS, getBankBrand } from '@/constants/banks'
 import { useToast } from 'primevue/usetoast'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -478,6 +481,7 @@ const budgetStore = useBudgetStore()
 const categoryStore = useCategoryStore()
 const toast = useToast()
 const { formatCurrency, formatDate, formatBudgetStatus } = useFormatters()
+const { isMobileView } = useMobile()
 const budgetBankOptions = BUDGET_BANK_OPTIONS
 
 const defaultBudgetForm = () => ({

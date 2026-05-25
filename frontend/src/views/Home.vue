@@ -36,7 +36,7 @@
       </div>
     </section>
 
-    <section class="apps-section">
+    <section v-if="!isMobileView" class="apps-section">
       <div class="section-heading">
         <div>
           <span class="section-kicker">Aplicaciones</span>
@@ -188,7 +188,7 @@
       </div>
     </section>
 
-    <section class="continue-section">
+    <section v-if="!isMobileView" class="continue-section">
       <div class="section-heading">
         <div>
           <span class="section-kicker">Continuar</span>
@@ -227,7 +227,7 @@
       </div>
     </section>
 
-    <section class="future-section">
+    <section v-if="!isMobileView" class="future-section">
       <div class="future-copy">
         <span class="section-kicker">Escalabilidad</span>
         <h2>La home ya piensa en futuras herramientas personales.</h2>
@@ -260,12 +260,14 @@ import { useRouter } from 'vue-router'
 import { useBudgetStore } from '@/stores/budgets'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useFormatters } from '@/composables/useFormatters'
+import { useMobile } from '@/composables/useMobile'
 import ProgressSpinner from 'primevue/progressspinner'
 
 const router = useRouter()
 const budgetStore = useBudgetStore()
 const watchlistStore = useWatchlistStore()
 const { formatCurrency, formatDate } = useFormatters()
+const { isMobileView } = useMobile()
 
 onMounted(async () => {
   await Promise.all([

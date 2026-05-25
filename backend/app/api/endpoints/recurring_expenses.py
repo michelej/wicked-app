@@ -132,22 +132,27 @@ async def apply_recurring_to_budget(
     
     # Convert existing items to dict with planned_amount as float
     for item in existing_items:
-        item_key = item.category_id or item.category
-        if not item_key:
+        item_base_key = item.category_id or item.category
+        if not item_base_key:
             continue
+
+        item_key = f"{item_base_key}::{item.flow_type or 'expense'}"
 
         items_dict[item_key] = {
             'category_id': item.category_id,
             'category': item.category,
+            'flow_type': item.flow_type,
             'planned_amount': float(item.planned_amount),
             'spent_amount': float(item.spent_amount)
         }
     
     # Add or update budget items for each recurring expense
     for expense in recurring_expenses:
-        expense_key = expense.category_id or expense.category
-        if not expense_key:
+        expense_base_key = expense.category_id or expense.category
+        if not expense_base_key:
             continue
+
+        expense_key = f"{expense_base_key}::expense"
 
         if expense_key in items_dict:
             # Category already exists, add the amount to planned_amount
@@ -157,6 +162,7 @@ async def apply_recurring_to_budget(
             items_dict[expense_key] = {
                 'category_id': expense.category_id,
                 'category': expense.category,
+                'flow_type': 'expense',
                 'planned_amount': float(expense.amount),
                 'spent_amount': 0
             }
@@ -166,6 +172,7 @@ async def apply_recurring_to_budget(
         BudgetItem(
             category_id=item.get('category_id'),
             category=item.get('category'),
+            flow_type=item.get('flow_type'),
             planned_amount=item['planned_amount'],
             spent_amount=item['spent_amount']
         )

@@ -68,6 +68,33 @@
         </div>
       </div>
 
+      <section v-if="isMobileView" class="mobile-availability-panel">
+        <div class="mobile-availability-main" :class="`is-${financialStatusTone}`">
+          <span class="mobile-availability-label">Disponible real</span>
+          <strong :class="{ 'negative': dineroLibreReal < 0 }">{{ formatCurrency(dineroLibreReal) }}</strong>
+          <small>{{ financialStatusMeta.description }}</small>
+        </div>
+
+        <div class="mobile-availability-grid">
+          <div class="mobile-mini-stat">
+            <span>Pendiente</span>
+            <strong>{{ formatCurrency(pendienteReservado) }}</strong>
+          </div>
+          <div class="mobile-mini-stat">
+            <span>Exceso</span>
+            <strong>{{ formatCurrency(excesoTotal) }}</strong>
+          </div>
+          <div class="mobile-mini-stat">
+            <span>Saldo actual</span>
+            <strong>{{ formatCurrency(saldoReal) }}</strong>
+          </div>
+          <div class="mobile-mini-stat">
+            <span>Estado</span>
+            <strong>{{ financialStatusMeta.label }}</strong>
+          </div>
+        </div>
+      </section>
+
       <!-- Summary Cards -->
       <div class="stats-grid">
         <div class="stat-card stat-card-balance">
@@ -245,6 +272,7 @@
           </div>
 
           <DataTable
+            v-if="!isMobileView || editingBudgetItems"
             :value="editingBudgetItems ? tempBudgetItems : enrichedBudgetItems"
             class="budget-items-table"
             stripedRows
@@ -371,10 +399,51 @@
             </Column>
           </DataTable>
 
+          <div v-else class="budget-items-mobile-list">
+            <article v-for="item in progressItemsSource" :key="item.category_id || item.category" class="budget-progress-mobile-card">
+              <div class="mobile-card-top">
+                <div class="mobile-card-heading">
+                  <strong>{{ item.category }}</strong>
+                  <small>{{ formatBudgetCategoryType(getBudgetCategoryType(item)) }} · {{ formatBudgetItemStatus(getBudgetCategoryStatus(item)) }}</small>
+                </div>
+                <div class="mobile-remaining-pill" :class="getRemainingStateClass(item)">
+                  <span>Queda</span>
+                  <strong>{{ formatCurrency(getRemainingAmount(item)) }}</strong>
+                </div>
+              </div>
+
+              <div class="mobile-progress-bar-shell">
+                <div class="mini-progress-bar mobile-progress-bar">
+                  <div
+                    class="mini-progress-fill"
+                    :class="getRemainingProgressClass(item)"
+                    :style="{ width: getRemainingProgressWidth(item) + '%' }"
+                  ></div>
+                </div>
+                <small class="mobile-progress-caption">{{ getRemainingPercentage(item).toFixed(1) }}% restante</small>
+              </div>
+
+              <div class="mobile-amount-grid">
+                <div class="mobile-amount-item">
+                  <span>Planificado</span>
+                  <strong>{{ formatCurrency(item.planned_amount) }}</strong>
+                </div>
+                <div class="mobile-amount-item">
+                  <span>Gastado</span>
+                  <strong class="spent">{{ formatCurrency(item.spent_amount) }}</strong>
+                </div>
+                <div class="mobile-amount-item">
+                  <span>Restante</span>
+                  <strong :class="{ 'text-red': getRemainingAmount(item) < 0, 'text-green': getRemainingAmount(item) >= 0 }">{{ formatCurrency(getRemainingAmount(item)) }}</strong>
+                </div>
+              </div>
+            </article>
+          </div>
+
           <div
             v-if="progressItemsSource.length > 0"
             class="budget-items-totals"
-            :class="{ 'with-actions': editingBudgetItems }"
+            :class="{ 'with-actions': editingBudgetItems, 'is-mobile': isMobileView && !editingBudgetItems }"
           >
             <div class="totals-cell totals-label">Totales</div>
             <div class="totals-cell totals-value">{{ formatCurrency(progressTotals.planned) }}</div>
@@ -382,7 +451,7 @@
             <div class="totals-cell totals-value" :class="{ 'text-red': progressTotals.remaining < 0, 'text-green': progressTotals.remaining >= 0 }">
               {{ formatCurrency(progressTotals.remaining) }}
             </div>
-            <div class="totals-cell totals-placeholder">-</div>
+            <div class="totals-cell totals-placeholder">{{ isMobileView && !editingBudgetItems ? 'Resumen final' : '-' }}</div>
             <div v-if="editingBudgetItems" class="totals-cell totals-placeholder">-</div>
           </div>
         </template>
@@ -958,6 +1027,7 @@ import { useTransactionStore } from '@/stores/transactions'
 import { useCategoryStore } from '@/stores/categories'
 import { useRecurringStore } from '@/stores/recurring'
 import { useFormatters } from '@/composables/useFormatters'
+import { useMobile } from '@/composables/useMobile'
 import { BUDGET_BANK_OPTIONS, getBankBrand } from '@/constants/banks'
 import { useToast } from 'primevue/usetoast'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -977,6 +1047,7 @@ const transactionStore = useTransactionStore()
 const categoryStore = useCategoryStore()
 const recurringStore = useRecurringStore()
 const toast = useToast()
+const { isMobileView } = useMobile()
 const { 
   formatCurrency, 
   formatDate, 
@@ -2084,6 +2155,86 @@ const saveBudgetItems = async () => {
   flex-wrap: wrap;
 }
 
+.mobile-availability-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-bottom: 1.25rem;
+}
+
+.mobile-availability-main,
+.mobile-mini-stat,
+.budget-progress-mobile-card {
+  border: 1px solid var(--surface-border);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--surface-card) 90%, transparent);
+  box-shadow: 0 14px 26px rgba(15, 23, 42, 0.08);
+}
+
+.mobile-availability-main {
+  padding: 1rem 1.1rem;
+}
+
+.mobile-availability-main.is-healthy {
+  background: linear-gradient(145deg, rgba(236, 253, 245, 0.96) 0%, rgba(255, 255, 255, 0.92) 100%);
+}
+
+.mobile-availability-main.is-warning {
+  background: linear-gradient(145deg, rgba(255, 251, 235, 0.96) 0%, rgba(255, 255, 255, 0.92) 100%);
+}
+
+.mobile-availability-main.is-critical {
+  background: linear-gradient(145deg, rgba(254, 242, 242, 0.96) 0%, rgba(255, 255, 255, 0.92) 100%);
+}
+
+.mobile-availability-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-color-secondary);
+}
+
+.mobile-availability-main strong {
+  display: block;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--heading-color);
+}
+
+.mobile-availability-main strong.negative {
+  color: #ef4444;
+}
+
+.mobile-availability-main small {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--text-color-secondary);
+  line-height: 1.45;
+}
+
+.mobile-availability-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.mobile-mini-stat {
+  padding: 0.85rem 0.95rem;
+}
+
+.mobile-mini-stat span {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.78rem;
+  color: var(--text-color-secondary);
+}
+
+.mobile-mini-stat strong {
+  color: var(--heading-color);
+}
+
 /* Stats Grid */
 .stats-grid {
   display: grid;
@@ -2773,6 +2924,88 @@ const saveBudgetItems = async () => {
   grid-template-columns: minmax(280px, 2.2fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) 5rem;
 }
 
+.budget-items-mobile-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.budget-progress-mobile-card {
+  padding: 0.95rem;
+}
+
+.mobile-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.mobile-card-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.mobile-card-heading strong {
+  font-size: 1rem;
+  color: var(--heading-color);
+}
+
+.mobile-card-heading small,
+.mobile-progress-caption,
+.mobile-amount-item span,
+.mobile-remaining-pill span {
+  color: var(--text-color-secondary);
+  font-size: 0.76rem;
+}
+
+.mobile-remaining-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 16px;
+  min-width: 110px;
+}
+
+.mobile-remaining-pill strong {
+  font-family: 'Courier New', monospace;
+  font-size: 0.95rem;
+}
+
+.mobile-progress-bar-shell {
+  margin-top: 0.8rem;
+}
+
+.mobile-progress-bar {
+  height: 8px;
+}
+
+.mobile-progress-caption {
+  display: block;
+  margin-top: 0.35rem;
+}
+
+.mobile-amount-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-top: 0.8rem;
+}
+
+.mobile-amount-item {
+  padding: 0.65rem 0.7rem;
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.88);
+}
+
+.mobile-amount-item strong {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--heading-color);
+}
+
 .totals-cell {
   min-height: 2rem;
   padding: 0.32rem 0.45rem;
@@ -3190,6 +3423,10 @@ const saveBudgetItems = async () => {
     font-size: 1.75rem;
   }
 
+  .page-header {
+    margin-bottom: 1.2rem;
+  }
+
   .header-content {
     flex-direction: column;
     align-items: stretch;
@@ -3209,6 +3446,18 @@ const saveBudgetItems = async () => {
 
   .stats-grid {
     grid-template-columns: 1fr;
+    margin-bottom: 1.2rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+    gap: 0.9rem;
+  }
+
+  .stat-icon {
+    width: 46px;
+    height: 46px;
+    font-size: 1.15rem;
   }
 
   .feasibility-summary {
@@ -3223,6 +3472,28 @@ const saveBudgetItems = async () => {
   .budget-items-totals,
   .budget-items-totals.with-actions {
     grid-template-columns: 1fr;
+  }
+
+  .budget-items-card .card-header,
+  .budget-items-card .header-title-section,
+  .budget-items-card .summary-stats,
+  .editing-toolbar,
+  .mobile-card-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .budget-items-card .summary-stats {
+    gap: 0.45rem;
+  }
+
+  .mobile-availability-grid,
+  .mobile-amount-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mobile-remaining-pill {
+    align-items: flex-start;
   }
 
   .totals-cell {

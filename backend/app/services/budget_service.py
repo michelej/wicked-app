@@ -234,6 +234,7 @@ class BudgetService:
             spent = float(category_spent.get(category_name, Decimal(0))) if category_name else 0.0
 
             serialized_item: dict[str, Any] = {
+                "flow_type": item.flow_type or self._resolve_budget_item_flow_type(category_document),
                 "planned_amount": float(item.planned_amount),
                 "spent_amount": spent,
             }
@@ -352,6 +353,7 @@ class BudgetService:
                 )
                 converted_items.append({
                     "category_id": category_document["_id"],
+                    "flow_type": item.get("flow_type") or self._resolve_budget_item_flow_type(category_document),
                     "planned_amount": float(item["planned_amount"]),
                     "spent_amount": float(item.get("spent_amount", 0)),
                 })
@@ -392,6 +394,7 @@ class BudgetService:
             serialized_items.append({
                 "category_id": category_document["_id"] if category_document else item_dict.get("category_id"),
                 "category": category_document["name"] if category_document else item_dict.get("category"),
+                "flow_type": item_dict.get("flow_type") or self._resolve_budget_item_flow_type(category_document),
                 "planned_amount": item_dict.get("planned_amount", 0),
                 "spent_amount": item_dict.get("spent_amount", 0),
             })
@@ -404,6 +407,12 @@ class BudgetService:
             return category_document["name"]
 
         return item.category
+
+    def _resolve_budget_item_flow_type(self, category_document: Optional[dict]) -> str:
+        if category_document and category_document.get("type") == "income":
+            return "income"
+
+        return "expense"
 
     def _get_budget_item_status(self, budget_category_type: str, remaining_amount: Decimal) -> str:
         if remaining_amount < 0:

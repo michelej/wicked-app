@@ -8,12 +8,14 @@ BankName = Literal["BBVA", "ING Direct"]
 BudgetCategoryType = Literal["fixed", "variable"]
 BudgetCategoryStatus = Literal["pending", "paid", "available", "no_margin", "exceeded"]
 FinancialStatus = Literal["HEALTHY", "WARNING", "CRITICAL"]
+BudgetItemFlowType = Literal["income", "expense"]
 
 
 class BudgetItem(BaseModel):
     """Individual budget item for a specific category"""
     category_id: Optional[str] = Field(default=None, min_length=1)
     category: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    flow_type: Optional[BudgetItemFlowType] = None
     planned_amount: Decimal = Field(..., gt=0, decimal_places=2)
     spent_amount: Decimal = Field(default=Decimal(0), ge=0, decimal_places=2)
 

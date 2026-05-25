@@ -9,8 +9,8 @@
 
       <div class="hero-metrics">
         <div class="hero-metric-tile">
-          <span>Ingresos previstos ING</span>
-          <strong>{{ formatCurrency(ingIncomeTotal + ingTemporaryIncomeTotal) }}</strong>
+          <span>Fondos temporales ING</span>
+          <strong>{{ formatCurrency(ingTemporaryIncomeTotal) }}</strong>
         </div>
         <div class="hero-metric-tile">
           <span>Transferencia planificada</span>
@@ -57,45 +57,17 @@
             </div>
 
             <div class="metric-strip">
-              <div class="metric-chip success">
-                <span>Ingresos</span>
-                <strong>{{ formatCurrency(ingIncomeTotal) }}</strong>
-              </div>
               <div class="metric-chip">
                 <span>Temporales</span>
                 <strong>{{ formatCurrency(ingTemporaryIncomeTotal) }}</strong>
               </div>
+              <div class="metric-chip info">
+                <span>Transferencia</span>
+                <strong>{{ formatCurrency(ingForm.transferAmount) }}</strong>
+              </div>
               <div class="metric-chip warning">
                 <span>Salidas ING</span>
                 <strong>{{ formatCurrency(ingExpenseTotal) }}</strong>
-              </div>
-            </div>
-
-            <div class="planner-section">
-              <div class="section-header">
-                <div>
-                  <span class="section-kicker subtle">Ingresos planificados</span>
-                  <h3>Nomina e ingresos previstos</h3>
-                </div>
-                <Button label="Agregar ingreso" icon="pi pi-plus" text size="small" @click="addCategoryRow('ing', 'income')" />
-              </div>
-
-              <div v-if="ingForm.incomeItems.length === 0" class="empty-inline-state">Aun no hay ingresos planificados.</div>
-
-              <div v-else class="line-items-list">
-                <div v-for="row in ingForm.incomeItems" :key="row.id" class="line-item-row">
-                  <Select v-model="row.category_id" :options="incomeCategoryOptions" optionLabel="displayName" optionValue="_id" class="flex-select" filter filterBy="name,displayName">
-                    <template #option="{ option }">
-                      <div class="category-option">
-                        <span v-if="option.parent_id" class="subcategory-indicator">↳</span>
-                        <i :class="normalizeIcon(option.icon)" :style="{ color: option.color }"></i>
-                        <span>{{ option.displayName }}</span>
-                      </div>
-                    </template>
-                  </Select>
-                  <InputNumber v-model="row.planned_amount" mode="currency" currency="EUR" locale="es-ES" :minFractionDigits="2" class="amount-input" />
-                  <Button icon="pi pi-trash" text severity="danger" @click="removeCategoryRow('ing', 'income', row.id)" />
-                </div>
               </div>
             </div>
 
@@ -323,9 +295,10 @@ const normalizeIcon = (icon) => {
   return `pi pi-${icon}`
 }
 
-const createCategoryRow = (categoryId = '', plannedAmount = null) => ({
+const createCategoryRow = (categoryId = '', plannedAmount = null, flowType = 'expense') => ({
   id: createRowId(),
   category_id: categoryId,
+  flow_type: flowType,
   planned_amount: plannedAmount
 })
 
@@ -335,12 +308,15 @@ const createTemporaryIncomeRow = (label = '', amount = null) => ({
   amount
 })
 
+const roundPlannerAmount = (value) => {
+  return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100
+}
+
 const ingForm = ref({
   id: null,
   name: '',
   start_date: null,
   end_date: null,
-  incomeItems: [],
   expenseItems: [],
   transferAmount: null,
   temporaryIncomes: []
@@ -370,18 +346,6 @@ const categoryById = computed(() => {
   return lookup
 })
 
-const incomeCategoryOptions = computed(() => {
-  return categoryStore.sortedIncomeCategories.map((category) => ({
-    ...category,
-    displayName: category.parent_id ? `↳ ${category.name}` : category.name
-  }))
-})
-
-const defaultIncomeCategoryId = computed(() => {
-  const payrollCategory = incomeCategoryOptions.value.find((category) => /nomina/i.test(category.name))
-  return payrollCategory?._id || incomeCategoryOptions.value[0]?._id || ''
-})
-
 const expenseCategoryOptions = computed(() => {
   return categoryStore.sortedExpenseCategories.map((category) => ({
     ...category,
@@ -401,12 +365,11 @@ const sumAmounts = (items = [], field = 'planned_amount') => {
   return items.reduce((sum, item) => sum + (Number(item?.[field] || 0)), 0)
 }
 
-const ingIncomeTotal = computed(() => sumAmounts(ingForm.value.incomeItems))
 const ingTemporaryIncomeTotal = computed(() => sumAmounts(ingForm.value.temporaryIncomes, 'amount'))
 const ingExpenseTotal = computed(() => sumAmounts(ingForm.value.expenseItems))
 const bbvaExpenseTotal = computed(() => sumAmounts(bbvaForm.value.expenseItems))
 const suggestedTransferAmount = computed(() => bbvaExpenseTotal.value)
-const ingAvailableBeforeTransfer = computed(() => ingIncomeTotal.value + ingTemporaryIncomeTotal.value - ingExpenseTotal.value)
+const ingAvailableBeforeTransfer = computed(() => ingTemporaryIncomeTotal.value - ingExpenseTotal.value)
 const ingRemainingAfterTransfer = computed(() => ingAvailableBeforeTransfer.value - Number(ingForm.value.transferAmount || 0))
 const bbvaCoverageDelta = computed(() => Number(ingForm.value.transferAmount || 0) - bbvaExpenseTotal.value)
 
@@ -436,9 +399,25 @@ const resolveCategoryName = (categoryId) => {
   return categoryById.value[categoryId]?.name || ''
 }
 
-const isIncomeCategory = (categoryValue) => {
+const getPlannerCategoryType = (categoryValue) => {
   const category = categoryById.value[categoryValue] || categoryByName.value[categoryValue]
-  return category ? category.type === 'income' || category.type === 'both' : /nomina|ingreso/i.test(categoryValue || '')
+  return category?.type || null
+}
+
+const isExpenseCategory = (categoryValue) => {
+  return getPlannerCategoryType(categoryValue) === 'expense'
+}
+
+const resolvePlannerFlowType = (item) => {
+  if (item.flow_type === 'income' || item.flow_type === 'expense') {
+    return item.flow_type
+  }
+
+  if (isExpenseCategory(item.category_id || item.category)) {
+    return 'expense'
+  }
+
+  return null
 }
 
 const mapBudgetToForm = (budget) => {
@@ -450,14 +429,9 @@ const mapBudgetToForm = (budget) => {
     name: budget.name,
     start_date: budget.start_date,
     end_date: budget.end_date,
-    incomeItems: budget.bank === 'ING Direct'
-      ? items
-        .filter((item) => item.category !== TRANSFER_CATEGORY && isIncomeCategory(item.category_id || item.category))
-        .map((item) => createCategoryRow(resolveCategoryId(item.category_id || item.category), Number(item.planned_amount)))
-      : [],
     expenseItems: items
-      .filter((item) => item.category !== TRANSFER_CATEGORY && (budget.bank === 'BBVA' || !isIncomeCategory(item.category_id || item.category)))
-      .map((item) => createCategoryRow(resolveCategoryId(item.category_id || item.category), Number(item.planned_amount))),
+      .filter((item) => item.category !== TRANSFER_CATEGORY && resolvePlannerFlowType(item) === 'expense')
+      .map((item) => createCategoryRow(resolveCategoryId(item.category_id || item.category), Number(item.planned_amount), 'expense')),
     transferAmount: budget.bank === 'ING Direct' ? Number(transferItem?.planned_amount || 0) : null,
     temporaryIncomes: budget.bank === 'ING Direct'
       ? (budget.planning_metadata?.temporary_incomes || []).map((item) => createTemporaryIncomeRow(item.label, Number(item.amount)))
@@ -468,17 +442,14 @@ const mapBudgetToForm = (budget) => {
 const hydrateForms = () => {
   if (ingBudget.value) {
     ingForm.value = mapBudgetToForm(ingBudget.value)
-    if (ingForm.value.incomeItems.length === 0) {
-      ingForm.value.incomeItems.push(createCategoryRow(defaultIncomeCategoryId.value))
-    }
   }
 
   if (bbvaBudget.value) {
-    bbvaForm.value = mapBudgetToForm(bbvaBudget.value)
-    if (bbvaForm.value.expenseItems.length === 0) {
-      bbvaForm.value.expenseItems.push(createCategoryRow())
+      bbvaForm.value = mapBudgetToForm(bbvaBudget.value)
+      if (bbvaForm.value.expenseItems.length === 0) {
+      bbvaForm.value.expenseItems.push(createCategoryRow('', null, 'expense'))
+      }
     }
-  }
 }
 
 const loadPlanner = async () => {
@@ -498,15 +469,11 @@ const loadPlanner = async () => {
 onMounted(loadPlanner)
 
 const addCategoryRow = (bankKey, section) => {
-  if (bankKey === 'ing' && section === 'income') ingForm.value.incomeItems.push(createCategoryRow())
-  if (bankKey === 'ing' && section === 'expense') ingForm.value.expenseItems.push(createCategoryRow())
-  if (bankKey === 'bbva') bbvaForm.value.expenseItems.push(createCategoryRow())
+  if (bankKey === 'ing' && section === 'expense') ingForm.value.expenseItems.push(createCategoryRow('', null, 'expense'))
+  if (bankKey === 'bbva') bbvaForm.value.expenseItems.push(createCategoryRow('', null, 'expense'))
 }
 
 const removeCategoryRow = (bankKey, section, rowId) => {
-  if (bankKey === 'ing' && section === 'income') {
-    ingForm.value.incomeItems = ingForm.value.incomeItems.filter((row) => row.id !== rowId)
-  }
   if (bankKey === 'ing' && section === 'expense') {
     ingForm.value.expenseItems = ingForm.value.expenseItems.filter((row) => row.id !== rowId)
   }
@@ -527,16 +494,58 @@ const syncTransferToSuggestion = () => {
   ingForm.value.transferAmount = suggestedTransferAmount.value
 }
 
+const mergePlannerCategoryRows = (rows = []) => {
+  const mergedRows = []
+  const rowsByKey = new Map()
+
+  rows.forEach((row) => {
+    const categoryId = String(row.category_id || '').trim()
+    const plannedAmount = roundPlannerAmount(row.planned_amount)
+    const flowType = row.flow_type || 'expense'
+    const rowKey = categoryId ? `${categoryId}::${flowType}` : `${row.id || createRowId()}::${flowType}`
+
+    if (!categoryId) {
+      mergedRows.push({ ...row, flow_type: flowType, planned_amount: plannedAmount })
+      return
+    }
+
+    if (!rowsByKey.has(rowKey)) {
+      const normalizedRow = { ...row, flow_type: flowType, planned_amount: plannedAmount }
+      rowsByKey.set(rowKey, normalizedRow)
+      mergedRows.push(normalizedRow)
+      return
+    }
+
+    const existingRow = rowsByKey.get(rowKey)
+    existingRow.planned_amount = roundPlannerAmount(existingRow.planned_amount + plannedAmount)
+  })
+
+  return mergedRows
+}
+
+const normalizePlannerForms = () => {
+  ingForm.value = {
+    ...ingForm.value,
+    expenseItems: mergePlannerCategoryRows(ingForm.value.expenseItems)
+  }
+
+  bbvaForm.value = {
+    ...bbvaForm.value,
+    expenseItems: mergePlannerCategoryRows(bbvaForm.value.expenseItems)
+  }
+}
+
 const collapseItems = (items) => {
   const merged = new Map()
 
   items.forEach((item) => {
     const currentAmount = Number(item.planned_amount || 0)
-    const itemKey = item.category_id || item.category
+    const itemKey = `${item.category_id || item.category}::${item.flow_type || 'expense'}`
     if (!merged.has(itemKey)) {
       merged.set(itemKey, {
         category_id: item.category_id || '',
         category: item.category || resolveCategoryName(item.category_id),
+        flow_type: item.flow_type || 'expense',
         planned_amount: currentAmount
       })
       return
@@ -548,6 +557,7 @@ const collapseItems = (items) => {
   return Array.from(merged.values()).map((item) => ({
     category_id: item.category_id || null,
     category: item.category,
+    flow_type: item.flow_type || 'expense',
     planned_amount: item.planned_amount,
     spent_amount: 0
   }))
@@ -567,6 +577,7 @@ const sanitizeCategoryRows = (rows, sectionLabel) => {
     }
 
     result.push({ category_id: categoryId, category: resolveCategoryName(categoryId), planned_amount: plannedAmount, spent_amount: 0 })
+    result[result.length - 1].flow_type = row.flow_type || 'expense'
     return result
   }, [])
 }
@@ -591,20 +602,19 @@ const sanitizeTemporaryIncomes = (rows) => {
 
 const buildPayload = (bankKey) => {
   if (bankKey === 'ing') {
-    const incomeItems = sanitizeCategoryRows(ingForm.value.incomeItems, 'los ingresos de ING')
     const expenseItems = sanitizeCategoryRows(ingForm.value.expenseItems, 'las salidas de ING')
     const temporaryIncomes = sanitizeTemporaryIncomes(ingForm.value.temporaryIncomes)
     const transferAmount = Number(ingForm.value.transferAmount || 0)
     const transferCategoryId = resolveCategoryId(TRANSFER_CATEGORY)
     const transferItems = transferAmount > 0
-      ? [{ category_id: transferCategoryId, category: TRANSFER_CATEGORY, planned_amount: transferAmount, spent_amount: 0 }]
+      ? [{ category_id: transferCategoryId, category: TRANSFER_CATEGORY, flow_type: 'expense', planned_amount: transferAmount, spent_amount: 0 }]
       : []
 
     return {
       name: ingForm.value.name.trim(),
       budget_month: budgetMonth.value,
       status: 'draft',
-      budget_items: collapseItems([...incomeItems, ...expenseItems, ...transferItems]),
+      budget_items: collapseItems([...expenseItems, ...transferItems]),
       planning_metadata: {
         planner_type: 'next-month',
         counterpart_bank: 'BBVA',
@@ -627,23 +637,48 @@ const buildPayload = (bankKey) => {
   }
 }
 
+const getPlannerTargetBudget = (bankKey) => {
+  return bankKey === 'ing' ? ingBudget.value : bbvaBudget.value
+}
+
+const getPlannerTargetName = (bankKey) => {
+  return bankKey === 'ing' ? 'ING' : 'BBVA'
+}
+
+const preparePlannerPayload = (bankKey) => {
+  const payload = buildPayload(bankKey)
+  const targetName = getPlannerTargetName(bankKey)
+
+  if (!payload.name) {
+    throw new Error(`El nombre del presupuesto ${targetName} es obligatorio.`)
+  }
+
+  return payload
+}
+
+const persistPlannerBudget = async (bankKey, payload) => {
+  const targetBudget = getPlannerTargetBudget(bankKey)
+  if (!targetBudget) {
+    throw new Error('No existe el borrador que intentas guardar.')
+  }
+
+  return budgetStore.updateBudget(targetBudget._id, payload)
+}
+
 const savePlannerBudget = async (bankKey) => {
-  const targetBudget = bankKey === 'ing' ? ingBudget.value : bbvaBudget.value
+  const targetBudget = getPlannerTargetBudget(bankKey)
   if (!targetBudget) {
     return
   }
 
-  const targetName = bankKey === 'ing' ? 'ING' : 'BBVA'
+  const targetName = getPlannerTargetName(bankKey)
 
   try {
     savingKey.value = bankKey
-    const payload = buildPayload(bankKey)
+    normalizePlannerForms()
+    const payload = preparePlannerPayload(bankKey)
 
-    if (!payload.name) {
-      throw new Error(`El nombre del presupuesto ${targetName} es obligatorio.`)
-    }
-
-    await budgetStore.updateBudget(targetBudget._id, payload)
+    await persistPlannerBudget(bankKey, payload)
     await budgetStore.fetchBudgets({ status: 'draft', limit: 1000 })
     hydrateForms()
 
@@ -658,8 +693,32 @@ const savePlannerBudget = async (bankKey) => {
 const saveAllBudgets = async () => {
   savingKey.value = 'all'
   try {
-    await savePlannerBudget('ing')
-    await savePlannerBudget('bbva')
+    normalizePlannerForms()
+
+    const ingPayload = preparePlannerPayload('ing')
+    const bbvaPayload = preparePlannerPayload('bbva')
+
+    await Promise.all([
+      persistPlannerBudget('ing', ingPayload),
+      persistPlannerBudget('bbva', bbvaPayload)
+    ])
+
+    await budgetStore.fetchBudgets({ status: 'draft', limit: 1000 })
+    hydrateForms()
+
+    toast.add({
+      severity: 'success',
+      summary: 'Borradores guardados',
+      detail: 'ING y BBVA se actualizaron correctamente con los importes visibles en pantalla.',
+      life: 3500
+    })
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'No se pudo guardar todo',
+      detail: error.message || error.response?.data?.detail || 'Revisa los datos de ambos presupuestos.',
+      life: 5000
+    })
   } finally {
     savingKey.value = null
   }
