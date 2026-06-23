@@ -231,6 +231,7 @@ def parse_bbva_workbook(content: bytes, file_name: str) -> List[Dict[str, Any]]:
         if amount_value is None or amount_value == Decimal("0"):
             continue
 
+        booking_date_raw = mapped_row.get("Fecha")
         comment_suggestion = build_bbva_comment_suggestion(
             mapped_row.get("Concepto"),
             mapped_row.get("Observaciones"),
@@ -241,13 +242,20 @@ def parse_bbva_workbook(content: bytes, file_name: str) -> List[Dict[str, Any]]:
                 "source_bank": "bbva",
                 "source_file_name": file_name,
                 "source_row_number": row_offset,
-                "fingerprint": build_fingerprint("bbva", mapped_row, amount_value),
+                "fingerprint": build_fingerprint(
+                    "bbva",
+                    {
+                        **mapped_row,
+                        "F.Valor": booking_date_raw,
+                    },
+                    amount_value,
+                ),
                 "type": "expense" if amount_value < 0 else "income",
                 "amount": float(abs(amount_value)),
                 "currency": sanitize_text(mapped_row.get("Divisa")) or "EUR",
-                "value_date": parse_excel_date(mapped_row.get("F.Valor")),
-                "booking_date": parse_excel_date(mapped_row.get("Fecha")),
-                "suggested_timestamp": build_suggested_timestamp(mapped_row.get("F.Valor"), mapped_row.get("Fecha")),
+                "value_date": parse_excel_date(booking_date_raw),
+                "booking_date": parse_excel_date(booking_date_raw),
+                "suggested_timestamp": build_suggested_timestamp(booking_date_raw, booking_date_raw),
                 "raw_concept": sanitize_text(mapped_row.get("Concepto")),
                 "raw_movement": sanitize_text(mapped_row.get("Movimiento")),
                 "raw_observations": sanitize_text(mapped_row.get("Observaciones")),
