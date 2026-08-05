@@ -335,9 +335,7 @@ def parse_ing_workbook(content: bytes, file_name: str) -> List[Dict[str, Any]]:
                     {
                         "F.Valor": date_raw,
                         "Fecha": date_raw,
-                        "Concepto": description,
-                        "Movimiento": movement_label,
-                        "Observaciones": comment,
+                        "Saldo": balance_raw,
                     },
                     amount_value,
                 ),
@@ -580,11 +578,14 @@ def build_fingerprint(source_bank: str, row: Dict[str, Any], amount_value: Decim
         source_bank,
         sanitize_text(row.get("F.Valor")) or "",
         sanitize_text(row.get("Fecha")) or "",
-        sanitize_text(row.get("Concepto")) or "",
-        sanitize_text(row.get("Movimiento")) or "",
-        sanitize_text(row.get("Observaciones")) or "",
-        str(abs(amount_value)),
     ]
+
+    if source_bank == "bbva":
+        parts.append(sanitize_text(row.get("Disponible")) or "")
+    elif source_bank == "ing_direct":
+        parts.append(sanitize_text(row.get("Saldo")) or "")
+
+    parts.append(str(abs(amount_value)))
     return sha256("|".join(parts).encode("utf-8")).hexdigest()
 
 
