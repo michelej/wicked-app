@@ -38,6 +38,7 @@
               </span>
               <span class="stat-item">
                 <strong>Total Gastado:</strong> {{ formatCurrency(monthSummary.total_spent) }}
+                <span class="stat-income">Ingresos: {{ formatCurrency(monthSummary.total_income || 0) }}</span>
               </span>
             </div>
           </div>
@@ -54,6 +55,7 @@
               <div class="section-stat">
                 <span>Total gastado</span>
                 <strong>{{ formatCurrency(monthSummary.total_spent) }}</strong>
+                <small class="section-income">Ingresos: {{ formatCurrency(monthSummary.total_income || 0) }}</small>
               </div>
             </div>
 
@@ -538,6 +540,12 @@ onMounted(async () => {
   color: var(--text-color-secondary);
 }
 
+.stat-income {
+  margin-left: 0.5rem;
+  color: #15803d;
+  font-weight: 600;
+}
+
 .summary-section {
   margin-top: 1rem;
   padding: 1.25rem;
@@ -602,6 +610,12 @@ onMounted(async () => {
   font-size: 1.2rem;
   font-weight: 700;
   color: var(--text-color);
+}
+
+.section-income {
+  color: #15803d;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 /* Categories Summary */

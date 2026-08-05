@@ -105,6 +105,7 @@ class MonthlyBudgetSummary(BaseModel):
     budget_month: str
     total_planned: Decimal = Field(default=Decimal(0), ge=0, decimal_places=2)
     total_spent: Decimal = Field(default=Decimal(0), ge=0, decimal_places=2)
+    total_income: Decimal = Field(default=Decimal(0), ge=0, decimal_places=2)
     budget_count: int = Field(default=0, ge=0)
     categories_summary: Dict[str, Dict[str, Union[float, int]]] = Field(default_factory=dict)  # category -> {planned, spent, transactions}
     credit_card_total_spent: Decimal = Field(default=Decimal(0), ge=0, decimal_places=2)

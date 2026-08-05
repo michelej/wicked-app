@@ -100,7 +100,6 @@
 
             <div class="app-card-actions">
               <Button label="Abrir" icon="pi pi-arrow-right" severity="success" @click="navigateToBudgets" />
-              <Button label="Planificar" icon="pi pi-calendar-plus" text @click="navigateToPlanner" />
             </div>
           </template>
         </Card>
@@ -326,10 +325,6 @@ const budgetSnapshotLabel = computed(() => {
 
 const navigateToBudgets = () => {
   router.push('/budgets')
-}
-
-const navigateToPlanner = () => {
-  router.push({ name: 'next-month-planner-setup' })
 }
 
 const navigateToRegistry = () => {

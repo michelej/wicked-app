@@ -290,6 +290,7 @@ class BudgetService:
         for month, month_budgets in monthly_groups.items():
             total_planned = Decimal(0)
             total_spent = Decimal(0)
+            total_income = Decimal(0)
             categories_summary = {}
             credit_card_total_spent = Decimal(0)
             credit_card_transactions_count = 0
@@ -311,6 +312,13 @@ class BudgetService:
                 )
                 total_spent += budget_spent
 
+                budget_income = await self._aggregate_income(
+                    "transactions",
+                    str(budget.id),
+                    category_maps,
+                )
+                total_income += budget_income
+
                 credit_spent, credit_transactions = await self._aggregate_expenses(
                     "credit_card_transactions",
                     str(budget.id),
@@ -326,6 +334,7 @@ class BudgetService:
                     budget_month=month,
                     total_planned=total_planned,
                     total_spent=total_spent,
+                    total_income=total_income,
                     budget_count=len(month_budgets),
                     categories_summary=serialize_category_summary(categories_summary),
                     credit_card_total_spent=credit_card_total_spent,
@@ -529,3 +538,22 @@ class BudgetService:
             transaction_count += 1
 
         return total_amount, transaction_count
+
+    async def _aggregate_income(
+        self,
+        collection_name: str,
+        budget_id: str,
+        category_maps: CategoryReferenceMaps,
+    ) -> Decimal:
+        collection = self.db[collection_name]
+        cursor = collection.find({"budget_id": budget_id, "type": "income"})
+        total_amount = Decimal(0)
+
+        async for transaction in cursor:
+            category_name = self._resolve_category_name_from_document(transaction, category_maps)
+            if category_name == "Transferido Cuentas":
+                continue
+
+            total_amount += Decimal(str(transaction["amount"]))
+
+        return total_amount

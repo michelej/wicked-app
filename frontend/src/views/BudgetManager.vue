@@ -9,16 +9,6 @@
 
         <Button
           v-if="!isMobileView"
-          label="Planificar mes siguiente"
-          icon="pi pi-calendar"
-          severity="secondary"
-          outlined
-          class="toolbar-secondary-action"
-          @click="router.push({ name: 'next-month-planner-setup' })"
-        />
-
-        <Button
-          v-if="!isMobileView"
           label="Nuevo Presupuesto"
           icon="pi pi-plus"
           severity="success"

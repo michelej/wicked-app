@@ -38,7 +38,7 @@ const model = ref([
         featured: true,
         featuredTone: 'finance',
         to: '/budgets',
-        activeRouteNames: ['budgets', 'budget-detail', 'next-month-planner-setup', 'next-month-planner', 'monthly-budget-summary', 'transactions', 'credit-cards', 'imports-upload', 'imports-review', 'recurring', 'categories'],
+        activeRouteNames: ['budgets', 'budget-detail', 'monthly-budget-summary', 'transactions', 'credit-cards', 'imports-upload', 'imports-review', 'recurring', 'categories'],
         command: () => router.push('/budgets'),
         items: [
           {
@@ -46,12 +46,6 @@ const model = ref([
             icon: 'pi pi-fw pi-briefcase',
             to: '/budgets',
             activeRouteNames: ['budgets']
-          },
-          {
-            label: 'Planificador mensual',
-            icon: 'pi pi-fw pi-calendar-plus',
-            to: '/budgets/next-month-planner/setup',
-            activeRouteNames: ['next-month-planner-setup', 'next-month-planner']
           },
           {
             label: 'Resumen mensual',
