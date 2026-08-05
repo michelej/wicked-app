@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Wicked App">
+  <defs>
+    <linearGradient id="bg" x1="52" y1="44" x2="458" y2="468" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#10b981"/>
+      <stop offset="1" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
+  <circle cx="394" cy="118" r="54" fill="#f8fafc" opacity="0.92"/>
+  <path d="M106 144h50l44 166 56-136h36l56 136 44-166h50l-76 224h-34l-58-140-58 140h-34z" fill="#fff"/>
+</svg>

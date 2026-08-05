@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import PrimeVue from 'primevue/config'
 import Aura from '@primeuix/themes/aura'
+import { registerSW } from 'virtual:pwa-register'
 import App from './App.vue'
 import router from './router'
 
@@ -30,6 +31,10 @@ import Tooltip from 'primevue/tooltip'
 import ToastService from 'primevue/toastservice'
 
 const app = createApp(App)
+
+registerSW({
+  immediate: true
+})
 
 app.use(createPinia())
 app.use(router)
