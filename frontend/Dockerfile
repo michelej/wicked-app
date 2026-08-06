@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN pnpm install
 
 # Copy application files
 COPY . .
@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 5173
 
 # Run the application
-CMD ["npm", "run", "dev"]
+CMD ["pnpm", "run", "dev"]
