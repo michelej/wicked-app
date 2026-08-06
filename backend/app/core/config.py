@@ -26,6 +26,7 @@ class Settings(BaseSettings):
         "http://wickednas:5173",
         "http://wickednas:8000",
     ]
+    CORS_ORIGIN_REGEX: str = r"^https?://(localhost|127\.0\.0\.1|wickednas|10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?::\d+)?$"
     
     # API settings
     API_HOST: str = "0.0.0.0"
