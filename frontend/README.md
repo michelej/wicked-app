@@ -22,12 +22,14 @@ Copy `.env.example` to `.env`:
 cp .env.example .env
 ```
 
-Update `VITE_API_URL` if needed (default is `http://localhost:8000`).
+Update `VITE_API_URL` only if the browser should call a specific public API
+URL. If it is empty, the frontend automatically calls the same hostname on
+port `8000`.
 
 ### Run Locally
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 The application will be available at http://localhost:5173
@@ -35,13 +37,13 @@ The application will be available at http://localhost:5173
 ### Build for Production
 
 ```bash
-npm run build
+pnpm build
 ```
 
 ### Preview Production Build
 
 ```bash
-npm run preview
+pnpm preview
 ```
 
 ## Docker

@@ -5,6 +5,16 @@ const getPublicApiURL = () => {
   return configuredApiUrl || null
 }
 
+const getSameHostBackendURL = () => {
+  if (typeof window === 'undefined') {
+    return 'http://localhost:8000'
+  }
+
+  const protocol = window.location.protocol
+  const hostname = window.location.hostname
+  return `${protocol}//${hostname}:8000`
+}
+
 // Construir la URL del backend dinámicamente basada en el host actual
 const getBackendURL = () => {
   // Si hay una URL publica configurada, usarla
@@ -13,15 +23,7 @@ const getBackendURL = () => {
     return publicApiUrl
   }
 
-  // En desarrollo, usar el proxy de Vite (/api)
-  if (import.meta.env.DEV) {
-    return ''
-  }
-  
-  // En producción, usar el hostname actual con puerto 8000
-  const protocol = window.location.protocol
-  const hostname = window.location.hostname
-  return `${protocol}//${hostname}:8000`
+  return getSameHostBackendURL()
 }
 
 const apiClient = axios.create({
