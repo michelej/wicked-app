@@ -13,6 +13,13 @@
     </div>
 
     <!-- Budget Details -->
+    <MobileBudgetDetail
+      v-else-if="budget && isMobileView"
+      :budget="budget"
+      :summary-totals="mobileBudgetSummary"
+      :budget-items="mobileBudgetItems"
+    />
+
     <div v-else-if="budget" class="budget-content">
       <!-- Header -->
       <div class="page-header">
@@ -781,6 +788,7 @@
       </Card>
     </div>
 
+    <template v-if="!isMobileView">
     <!-- Transaction Dialog -->
     <Dialog 
       v-model:visible="showTransactionDialog"
@@ -1016,6 +1024,7 @@
         />
       </template>
     </Dialog>
+    </template>
   </div>
 </template>
 
@@ -1029,6 +1038,7 @@ import { useRecurringStore } from '@/stores/recurring'
 import { useFormatters } from '@/composables/useFormatters'
 import { useMobile } from '@/composables/useMobile'
 import { BUDGET_BANK_OPTIONS, getBankBrand } from '@/constants/banks'
+import MobileBudgetDetail from '@/components/budgets/MobileBudgetDetail.vue'
 import { useToast } from 'primevue/usetoast'
 import ProgressSpinner from 'primevue/progressspinner'
 import Calendar from 'primevue/calendar'
@@ -1354,6 +1364,78 @@ const progressTotals = computed(() => {
   })
 })
 
+const mobileBudgetSummary = computed(() => ({
+  planned: Number(summary.value.total_planned ?? progressTotals.value.planned ?? 0),
+  spent: Number(summary.value.total_spent ?? progressTotals.value.spent ?? 0),
+  remaining: Number(summary.value.total_remaining ?? progressTotals.value.remaining ?? 0)
+}))
+
+const getSpentPercentage = (item) => {
+  const planned = Number(item?.planned_amount || 0)
+  const spent = Number(item?.spent_amount || 0)
+
+  if (planned <= 0) {
+    return spent > 0 ? null : 0
+  }
+
+  return (spent / planned) * 100
+}
+
+const getSpentProgressWidth = (item) => {
+  const spentPercentage = getSpentPercentage(item)
+
+  if (spentPercentage === null) {
+    return Number(item?.spent_amount || 0) > 0 ? 100 : 0
+  }
+
+  return Math.max(Math.min(spentPercentage, 100), 0)
+}
+
+const getMobileBudgetStateMeta = (item) => {
+  const planned = Number(item?.planned_amount || 0)
+  const spent = Number(item?.spent_amount || 0)
+  const remaining = getRemainingAmount(item)
+  const spentPercentage = getSpentPercentage(item)
+
+  if (planned <= 0) {
+    if (spent > 0) {
+      return { label: 'Sin plan', tone: 'danger' }
+    }
+
+    return { label: 'Sin plan', tone: 'neutral' }
+  }
+
+  if (remaining < 0 || spentPercentage >= 100) {
+    return { label: 'Excedido', tone: 'danger' }
+  }
+
+  if (spentPercentage >= 80 || remaining === 0) {
+    return { label: 'Al limite', tone: 'warning' }
+  }
+
+  return { label: 'En rango', tone: 'healthy' }
+}
+
+const mobileBudgetItems = computed(() => {
+  return sortedBudgetItems.value.map((item) => {
+    const spentPercentage = getSpentPercentage(item)
+    const stateMeta = getMobileBudgetStateMeta(item)
+
+    return {
+      key: item.category_id || item.category,
+      category: item.category,
+      plannedAmount: Number(item.planned_amount || 0),
+      spentAmount: Number(item.spent_amount || 0),
+      remainingAmount: getRemainingAmount(item),
+      progressValue: spentPercentage,
+      progressLabel: spentPercentage === null ? 'Sin plan' : `${spentPercentage.toFixed(0)}%`,
+      progressWidth: getSpentProgressWidth(item),
+      stateLabel: stateMeta.label,
+      stateTone: stateMeta.tone
+    }
+  })
+})
+
 const projectedAvailableBalance = computed(() => {
   return dineroLibreReal.value
 })
@@ -1566,14 +1648,15 @@ const expensesByCategory = computed(() => {
 onMounted(async () => {
   try {
     loading.value = true
-    
-    // Load budget, summary, transactions, categories, and recurring expenses
+
     await Promise.all([
       loadBudget(),
-      transactionStore.fetchTransactionsByBudget(budgetId.value),
-      categoryStore.fetchCategories(),
-      recurringStore.fetchRecurringExpenses()
+      categoryStore.fetchCategories()
     ])
+
+    if (!isMobileView.value) {
+      await loadDesktopOnlyData()
+    }
   } catch (err) {
     error.value = 'Error al cargar los datos del presupuesto'
     console.error(err)
@@ -1582,7 +1665,30 @@ onMounted(async () => {
   }
 })
 
+watch(isMobileView, async (mobile) => {
+  if (mobile) {
+    editingBudgetItems.value = false
+    showTransactionDialog.value = false
+    showRecurringDialog.value = false
+    showDeleteDialog.value = false
+    return
+  }
+
+  try {
+    await loadDesktopOnlyData()
+  } catch (err) {
+    console.error(err)
+  }
+})
+
 // Methods
+const loadDesktopOnlyData = async () => {
+  await Promise.all([
+    transactionStore.fetchTransactionsByBudget(budgetId.value),
+    recurringStore.fetchRecurringExpenses()
+  ])
+}
+
 const loadBudget = async () => {
   budget.value = await budgetStore.getBudget(budgetId.value)
   summary.value = await budgetStore.getBudgetSummary(budgetId.value)
@@ -1593,7 +1699,7 @@ const loadBudget = async () => {
 }
 
 const goBack = () => {
-  router.push('/budgets')
+  router.push({ name: 'budgets' })
 }
 
 const goToTransactionsForCategory = (categoryRow) => {

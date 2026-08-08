@@ -1,6 +1,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 const MOBILE_BREAKPOINT = 768
+const COMPACT_BREAKPOINT = 991
 
 export function useMobile() {
   const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : MOBILE_BREAKPOINT + 1)
@@ -19,10 +20,13 @@ export function useMobile() {
   })
 
   const isMobileView = computed(() => viewportWidth.value <= MOBILE_BREAKPOINT)
+  const isCompactLayout = computed(() => viewportWidth.value <= COMPACT_BREAKPOINT)
 
   return {
     viewportWidth,
     isMobileView,
-    mobileBreakpoint: MOBILE_BREAKPOINT
+    isCompactLayout,
+    mobileBreakpoint: MOBILE_BREAKPOINT,
+    compactBreakpoint: COMPACT_BREAKPOINT
   }
 }

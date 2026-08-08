@@ -1,42 +1,45 @@
 <template>
   <div class="hub-home">    
 
-    <section class="quick-actions-panel">
-      <div class="section-heading">
-        <div>
-          <span class="section-kicker">Accesos rapidos</span>
-          <h2>Empieza por una accion, no por una categoria.</h2>
+    <MobileHomeLauncher v-if="isMobileView" :items="mobileHomeItems" />
+
+    <template v-else>
+      <section class="quick-actions-panel">
+        <div class="section-heading">
+          <div>
+            <span class="section-kicker">Accesos rapidos</span>
+            <h2>Empieza por una accion, no por una categoria.</h2>
+          </div>
         </div>
-      </div>
 
-      <div class="quick-actions-grid">
-        <button type="button" class="quick-action-card is-live" @click="navigateToBudgets">
-          <span class="quick-action-icon"><i class="pi pi-plus-circle"></i></span>
-          <strong>Nuevo presupuesto</strong>
-          <p>Crea o ajusta el modulo financiero principal.</p>
-        </button>
+        <div class="quick-actions-grid">
+          <button type="button" class="quick-action-card is-live" @click="navigateToBudgets">
+            <span class="quick-action-icon"><i class="pi pi-plus-circle"></i></span>
+            <strong>Nuevo presupuesto</strong>
+            <p>Crea o ajusta el modulo financiero principal.</p>
+          </button>
 
-        <button type="button" class="quick-action-card is-live metadata-action" @click="navigateToRegistryRecords">
-          <span class="quick-action-icon"><i class="pi pi-bookmark"></i></span>
-          <strong>Nuevo registro</strong>
-          <p>Prepara una entrada generica para viajes, compras o eventos.</p>
-        </button>
+          <button type="button" class="quick-action-card is-live metadata-action" @click="navigateToRegistryRecords">
+            <span class="quick-action-icon"><i class="pi pi-bookmark"></i></span>
+            <strong>Nuevo registro</strong>
+            <p>Prepara una entrada generica para viajes, compras o eventos.</p>
+          </button>
 
-        <button type="button" class="quick-action-card is-live" @click="navigateToRegistryTimeline">
-          <span class="quick-action-icon"><i class="pi pi-calendar-clock"></i></span>
-          <strong>Timeline registro</strong>
-          <p>Consulta viajes, fechas y compras en una vista cronologica unificada.</p>
-        </button>
+          <button type="button" class="quick-action-card is-live" @click="navigateToRegistryTimeline">
+            <span class="quick-action-icon"><i class="pi pi-calendar-clock"></i></span>
+            <strong>Timeline registro</strong>
+            <p>Consulta viajes, fechas y compras en una vista cronologica unificada.</p>
+          </button>
 
-        <button type="button" class="quick-action-card is-live watch-action" @click="navigateToWatchlistToWatch">
-          <span class="quick-action-icon"><i class="pi pi-video"></i></span>
-          <strong>Añadir a pendientes</strong>
-          <p>Empieza tu lista de series y peliculas por ver dentro del hub.</p>
-        </button>
-      </div>
-    </section>
+          <button type="button" class="quick-action-card is-live watch-action" @click="navigateToWatchlistToWatch">
+            <span class="quick-action-icon"><i class="pi pi-video"></i></span>
+            <strong>Añadir a pendientes</strong>
+            <p>Empieza tu lista de series y peliculas por ver dentro del hub.</p>
+          </button>
+        </div>
+      </section>
 
-    <section v-if="!isMobileView" class="apps-section">
+      <section class="apps-section">
       <div class="section-heading">
         <div>
           <span class="section-kicker">Aplicaciones</span>
@@ -185,9 +188,9 @@
         </Card>
 
       </div>
-    </section>
+      </section>
 
-    <section v-if="!isMobileView" class="continue-section">
+      <section class="continue-section">
       <div class="section-heading">
         <div>
           <span class="section-kicker">Continuar</span>
@@ -224,9 +227,9 @@
         </button>
 
       </div>
-    </section>
+      </section>
 
-    <section v-if="!isMobileView" class="future-section">
+      <section class="future-section">
       <div class="future-copy">
         <span class="section-kicker">Escalabilidad</span>
         <h2>La home ya piensa en futuras herramientas personales.</h2>
@@ -249,17 +252,20 @@
           <p>Las ultimas entidades abiertas pueden mostrarse siempre con el mismo componente reutilizable.</p>
         </div>
       </div>
-    </section>
+      </section>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import MobileHomeLauncher from '@/components/common/MobileHomeLauncher.vue'
 import { useBudgetStore } from '@/stores/budgets'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useFormatters } from '@/composables/useFormatters'
 import { useMobile } from '@/composables/useMobile'
+import { mobileHomeItems } from '@/constants/navigation'
 import ProgressSpinner from 'primevue/progressspinner'
 
 const router = useRouter()
@@ -267,13 +273,35 @@ const budgetStore = useBudgetStore()
 const watchlistStore = useWatchlistStore()
 const { formatCurrency, formatDate } = useFormatters()
 const { isMobileView } = useMobile()
+const hasLoadedDesktopData = ref(false)
 
-onMounted(async () => {
+const loadDesktopHomeData = async () => {
+  if (isMobileView.value || hasLoadedDesktopData.value) {
+    return
+  }
+
+  hasLoadedDesktopData.value = true
+
   await Promise.all([
     budgetStore.fetchBudgets(),
     watchlistStore.fetchItems()
   ])
-  await budgetStore.getBudgetSummaries(budgetStore.activeBudgets.map((budget) => budget._id))
+
+  const budgetIds = budgetStore.activeBudgets.map((budget) => budget._id)
+
+  if (budgetIds.length > 0) {
+    await budgetStore.getBudgetSummaries(budgetIds)
+  }
+}
+
+onMounted(() => {
+  loadDesktopHomeData()
+})
+
+watch(isMobileView, (mobile) => {
+  if (!mobile) {
+    loadDesktopHomeData()
+  }
 })
 
 const activeBudgets = computed(() => {
@@ -320,11 +348,11 @@ const budgetSnapshotLabel = computed(() => {
     return `${activeBudgets.value.length} modulos financieros en buen estado`
   }
 
-  return `${budgetsNeedingAttention.value} presupuestos requieren atencion` 
+  return `${budgetsNeedingAttention.value} presupuestos requieren atencion`
 })
 
 const navigateToBudgets = () => {
-  router.push('/budgets')
+  router.push({ name: 'budgets' })
 }
 
 const navigateToRegistry = () => {
@@ -352,7 +380,7 @@ const navigateToWatchlistWatching = () => {
 }
 
 const navigateToBudgetDetail = (budgetId) => {
-  router.push(`/budgets/${budgetId}`)
+  router.push({ name: 'budget-detail', params: { id: budgetId } })
 }
 </script>
 

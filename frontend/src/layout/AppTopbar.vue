@@ -1,14 +1,23 @@
 <template>
   <div class="layout-topbar">
-    <router-link to="/" class="layout-topbar-logo">
+    <router-link :to="{ name: 'dashboard' }" class="layout-topbar-logo">
       <div class="logo-icon">
         <i class="pi pi-bolt"></i>
       </div>
       <div class="logo-copy">
         <span class="logo-text">Wicked<span class="logo-accent">App</span></span>        
       </div>
-    </router-link>    
-    <button class="p-link layout-menu-button layout-topbar-button" @click="onMenuToggle">
+    </router-link>
+    <router-link
+      v-if="isCompactLayout && !isMobileView && route.name !== 'dashboard'"
+      :to="{ name: 'dashboard' }"
+      class="layout-topbar-home layout-topbar-button"
+      aria-label="Volver al inicio"
+    >
+      <i class="pi pi-home"></i>
+      <span>Inicio</span>
+    </router-link>
+    <button v-if="!isMobileView" class="p-link layout-menu-button layout-topbar-button" @click="onMenuToggle">
       <i class="pi pi-bars"></i>
     </button>
 
@@ -43,9 +52,13 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useLayout } from '@/layout/composables/layout'
+import { useMobile } from '@/composables/useMobile'
 
 const { onMenuToggle, toggleDarkMode, isDarkTheme, layoutState } = useLayout()
+const { isCompactLayout, isMobileView } = useMobile()
+const route = useRoute()
 
 const topbarMenuClasses = computed(() => ({
   'layout-topbar-menu-mobile-active': layoutState.profileSidebarVisible.value
@@ -247,6 +260,10 @@ const showProfileSidebar = () => {
   gap: 0.5rem;
 }
 
+.layout-topbar-home {
+  text-decoration: none;
+}
+
 @media (min-width: 992px) {
   .layout-topbar-button span {
     display: inline;
@@ -255,7 +272,8 @@ const showProfileSidebar = () => {
 
 @media (max-width: 991px) {
   .layout-topbar {
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 0.5rem;
     padding: 0 1rem;
   }
 
@@ -272,8 +290,19 @@ const showProfileSidebar = () => {
     margin-left: 0;
   }
 
+  .layout-topbar-home {
+    padding: 0 0.9rem;
+    background: color-mix(in srgb, var(--surface-hover) 72%, transparent);
+    border-color: var(--surface-border);
+  }
+
+  .layout-topbar-home span {
+    display: inline;
+  }
+
   .layout-topbar-menu-button {
     display: inline-flex;
+    margin-left: auto;
   }
 
   .layout-topbar-menu {

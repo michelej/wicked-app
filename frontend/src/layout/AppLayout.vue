@@ -6,7 +6,7 @@
       <span class="backdrop-grid"></span>
     </div>
     <AppTopbar />
-    <div class="layout-sidebar">
+    <div v-if="!isMobileView" class="layout-sidebar">
       <AppSidebar />
     </div>
     <div class="layout-main-container">
@@ -17,7 +17,8 @@
       </div>
       <AppFooter />
     </div>
-    <div class="layout-mask" v-if="isSidebarActive" @click="onMaskClick"></div>
+    <MobileBottomNavigation v-if="isMobileView" :items="mobileBottomNavigationItems" :more-items="mobileMoreNavigationItems" />
+    <div class="layout-mask" v-if="!isMobileView && isSidebarActive" @click="onMaskClick"></div>
     <Toast />
   </div>
 </template>
@@ -28,13 +29,23 @@ import { useRouter } from 'vue-router'
 import AppTopbar from './AppTopbar.vue'
 import AppSidebar from './AppSidebar.vue'
 import AppFooter from './AppFooter.vue'
+import MobileBottomNavigation from '@/components/common/MobileBottomNavigation.vue'
 import { useLayout } from '@/layout/composables/layout.js'
+import { useMobile } from '@/composables/useMobile'
+import { mobileBottomNavigationItems, mobileMoreNavigationItems } from '@/constants/navigation'
 
 const router = useRouter()
 const { layoutConfig, layoutState, isSidebarActive, resetMenu } = useLayout()
+const { isMobileView } = useMobile()
 
 watch(router.currentRoute, () => {
   resetMenu()
+})
+
+watch(isMobileView, (mobile) => {
+  if (mobile) {
+    resetMenu()
+  }
 })
 
 const containerClass = computed(() => ({
@@ -43,8 +54,9 @@ const containerClass = computed(() => ({
   'layout-static-inactive': layoutState.staticMenuInactive.value && layoutConfig.menuMode.value === 'static',
   'layout-overlay-active': layoutState.overlayMenuActive.value,
   'layout-mobile-active': layoutState.staticMenuMobileActive.value,
-  'p-input-filled': false,
-  'p-ripple-disabled': false
+   'layout-mobile-experience': isMobileView.value,
+   'p-input-filled': false,
+   'p-ripple-disabled': false
 }))
 
 const onMaskClick = () => {
@@ -54,6 +66,9 @@ const onMaskClick = () => {
 
 <style scoped>
 .layout-wrapper {
+  --mobile-bottom-nav-height: 5rem;
+  --mobile-safe-area-bottom: env(safe-area-inset-bottom);
+  --mobile-bottom-nav-total-height: calc(var(--mobile-bottom-nav-height) + var(--mobile-safe-area-bottom));
   min-height: 100vh;
   position: relative;
   overflow: hidden;
@@ -133,6 +148,11 @@ const onMaskClick = () => {
   margin-left: 300px;
 }
 
+.layout-wrapper.layout-mobile-experience .layout-main-container {
+  margin-left: 0;
+  padding: 6.25rem 1rem calc(1.5rem + var(--mobile-bottom-nav-total-height));
+}
+
 .layout-wrapper.layout-static.layout-static-inactive .layout-main-container {
   margin-left: 0;
 }
@@ -162,6 +182,10 @@ const onMaskClick = () => {
   .layout-wrapper .layout-main-container {
     margin-left: 0;
     padding: 6.25rem 1rem 1.5rem;
+  }
+
+  .layout-wrapper.layout-mobile-experience .layout-main-container {
+    padding-bottom: calc(1.5rem + var(--mobile-bottom-nav-total-height));
   }
 
   .layout-wrapper.layout-static .layout-main-container {
