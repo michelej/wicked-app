@@ -39,7 +39,14 @@
           />
         </div>
 
-        <div class="toolbar-metrics">
+        <div v-if="isMobileView" class="toolbar-metrics toolbar-metrics-mobile">
+          <div v-for="metric in mobileToolbarMetrics" :key="metric.label" class="toolbar-metric compact-metric">
+            <span>{{ metric.label }}</span>
+            <strong :class="{ negative: metric.negative }">{{ metric.value }}</strong>
+          </div>
+        </div>
+
+        <div v-else class="toolbar-metrics">
           <div class="toolbar-metric">
             <span>Visibles</span>
             <strong>{{ filteredBudgets.length }}</strong>
@@ -82,6 +89,12 @@
         severity="success"
       />
     </div>
+
+    <MobileBudgetList
+      v-else-if="isMobileView"
+      :items="mobileBudgetItems"
+      @view-budget="viewBudget"
+    />
 
     <div v-else class="budgets-list">
       <Card
@@ -459,6 +472,7 @@ import { useCategoryStore } from '@/stores/categories'
 import { useFormatters } from '@/composables/useFormatters'
 import { useMobile } from '@/composables/useMobile'
 import { BUDGET_BANK_OPTIONS, getBankBrand } from '@/constants/banks'
+import MobileBudgetList from '@/components/budgets/MobileBudgetList.vue'
 import { useToast } from 'primevue/usetoast'
 import ProgressSpinner from 'primevue/progressspinner'
 import Calendar from 'primevue/calendar'
@@ -566,6 +580,91 @@ const plannedCategoriesCount = computed(() => {
   return filteredBudgets.value.reduce((sum, budget) => sum + (budget.budget_items?.length || 0), 0)
 })
 
+const mobileToolbarMetrics = computed(() => ([
+  {
+    label: 'Visibles',
+    value: filteredBudgets.value.length,
+    negative: false
+  },
+  {
+    label: 'Planificado',
+    value: formatCurrency(visiblePlannedTotal.value),
+    negative: false
+  },
+  {
+    label: 'Balance',
+    value: formatCurrency(visibleBalanceTotal.value),
+    negative: visibleBalanceTotal.value < 0
+  }
+]))
+
+const getBudgetSpentPercentage = (budget) => {
+  const planned = calculateTotalPlanned(budget.budget_items)
+  const spent = Number(budget.summary?.total_expense || 0)
+
+  if (planned <= 0) {
+    return spent > 0 ? null : 0
+  }
+
+  return (spent / planned) * 100
+}
+
+const getBudgetSpentProgressWidth = (budget) => {
+  const spentPercentage = getBudgetSpentPercentage(budget)
+
+  if (spentPercentage === null) {
+    return Number(budget.summary?.total_expense || 0) > 0 ? 100 : 0
+  }
+
+  return Math.max(Math.min(spentPercentage, 100), 0)
+}
+
+const getBudgetSpentProgressTone = (budget) => {
+  const spentPercentage = getBudgetSpentPercentage(budget)
+  const remaining = calculateTotalPlanned(budget.budget_items) - Number(budget.summary?.total_expense || 0)
+
+  if (spentPercentage === null) {
+    return Number(budget.summary?.total_expense || 0) > 0 ? 'danger' : 'neutral'
+  }
+
+  if (remaining < 0 || spentPercentage >= 100) {
+    return 'danger'
+  }
+
+  if (spentPercentage >= 80) {
+    return 'warning'
+  }
+
+  return 'healthy'
+}
+
+const mobileBudgetItems = computed(() => {
+  return filteredBudgets.value.map((budget) => {
+    const planned = calculateTotalPlanned(budget.budget_items)
+    const spent = Number(budget.summary?.total_expense || 0)
+    const remaining = planned - spent
+    const health = getBudgetHealth(budget)
+    const spentPercentage = getBudgetSpentPercentage(budget)
+    const bankBrand = getBudgetBankBrand(budget)
+
+    return {
+      id: budget._id,
+      name: budget.name,
+      period: `${formatDate(budget.start_date)} - ${formatDate(budget.end_date)}`,
+      bankLabel: bankBrand.label,
+      planned,
+      spent,
+      remaining,
+      categoriesCount: budget.budget_items?.length || 0,
+      healthLabel: health.label,
+      healthTone: health.tone,
+      progressLabel: spentPercentage === null ? 'Sin plan' : `${spentPercentage.toFixed(0)}% gastado`,
+      progressWidth: getBudgetSpentProgressWidth(budget),
+      progressTone: getBudgetSpentProgressTone(budget)
+    }
+  })
+})
+
 const getBudgetsForTab = (tab) => {
   if (tab === 'closed') {
     return budgetStore.closedBudgets
@@ -660,7 +759,7 @@ const removeBudgetItem = (index) => {
 }
 
 const viewBudget = (budgetId) => {
-  router.push(`/budgets/${budgetId}`)
+  router.push({ name: 'budget-detail', params: { id: budgetId } })
 }
 
 const editBudget = (budget) => {
@@ -1421,23 +1520,27 @@ const deleteBudget = async () => {
 
 @media (max-width: 768px) {
   .budget-manager {
-    gap: 1rem;
+    gap: 0.85rem;
   }
 
   .budget-toolbar {
-    padding: 0.95rem;
-    border-radius: 20px;
+    gap: 0.75rem;
+    padding: 0.8rem 0.85rem;
+    border-radius: 18px;
   }
 
   .page-title {
-    font-size: 1.65rem;
+    font-size: 1.32rem;
   }
 
   .toolbar-row,
-  .budget-header,
   .section-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .toolbar-row {
+    gap: 0.65rem;
   }
 
   .toolbar-metrics,
@@ -1445,6 +1548,38 @@ const deleteBudget = async () => {
   .budgets-list,
   .form-row {
     grid-template-columns: 1fr;
+  }
+
+  .toolbar-metrics-mobile {
+    width: 100%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  .compact-metric {
+    padding: 0.55rem 0.6rem;
+    border-radius: 14px;
+  }
+
+  .compact-metric span {
+    font-size: 0.67rem;
+  }
+
+  .compact-metric strong {
+    font-size: 0.84rem;
+  }
+
+  .status-tabs {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  .status-tabs :deep(.p-button) {
+    min-width: 0;
+    padding-inline: 0.55rem;
+    font-size: 0.78rem;
   }
 
   .budget-actions {
@@ -1465,11 +1600,6 @@ const deleteBudget = async () => {
   }
 
   .status-tabs {
-    width: 100%;
-  }
-
-  .toolbar-primary-action,
-  .status-tabs :deep(.p-button) {
     width: 100%;
   }
 
